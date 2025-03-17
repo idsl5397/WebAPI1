@@ -38,7 +38,6 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 ENV Logging__LogLevel__Default=Information \
     Logging__LogLevel__Microsoft.AspNetCore=Warning \
     AllowedHosts=* \
-    ConnectionStrings__WebDatabase=Server=192.168.50.104;Database=isha_kpi;User ID=sa;Password=MyP@ssw0rd123;TrustServerCertificate=true \
     JWTSETTINGS__VALIDATEISSUER=true \
     JWTSETTINGS__VALIDATEAUDIENCE=true \
     JWTSETTINGS__VALIDATELIFETIME=true \
