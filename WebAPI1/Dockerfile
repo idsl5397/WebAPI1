@@ -44,6 +44,6 @@ ENV Logging__LogLevel__Default=Information \
     JWTSETTINGS__VALIDATELIFETIME=true \
     JWTSETTINGS__KEY=bXktc2VjcmV0LXNlY3JldC1rZXktMTIzNDU= \
     JWTSETTINGS__ISSUER=http://localhost:5013/ \
-    JWTSETTINGS__AUDIENCE=http://localhost:3000/ \
+    JWTSETTINGS__AUDIENCE=http://localhost:3000/
 
 ENTRYPOINT ["dotnet", "WebAPI1.dll"]
