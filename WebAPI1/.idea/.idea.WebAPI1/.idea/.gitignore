@@ -1,0 +1,13 @@
+# 預設忽略的檔案
+/shelf/
+/workspace.xml
+# Rider 忽略的檔案
+/modules.xml
+/contentModel.xml
+/projectSettingsUpdater.xml
+/.idea.WebAPI1.iml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml

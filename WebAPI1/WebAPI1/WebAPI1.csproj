@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JWT" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\audit_basic_info.cs" />
+    <Compile Remove="Models\audit_cause.cs" />
+    <Compile Remove="Models\suggest_item.cs" />
+    <Compile Remove="Models\psm_kpi_data.cs" />
+    <Compile Remove="Models\psm_kpi_item.cs" />
+    <Compile Remove="Models\work_position.cs" />
+    <Compile Remove="Models\township_info.cs" />
+    <Compile Remove="Models\psm_kpi_report.cs" />
+    <Compile Remove="Models\psm_kpi_sub_item.cs" />
+    <Compile Remove="Models\industrial_area_info.cs" />
+    <Compile Remove="Models\improve_type_tb.cs" />
+    <Compile Remove="Models\FidoCredentials.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
+  </ItemGroup>
+
+</Project>
