@@ -211,7 +211,7 @@ public partial class isha_sys_devContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 用戶名唯一索引
-            entity.HasIndex(u => u.Username).IsUnique();
+            entity.HasIndex(u => new { u.Username, u.Email }).IsUnique();
             
             // 電子郵件索引
             entity.HasIndex(u => u.Email);
