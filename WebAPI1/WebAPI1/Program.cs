@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebAPI1.Models;
+using WebAPI1.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +18,16 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+//sentry log
+// builder.WebHost.UseSentry(options =>
+// {
+//     options.Dsn = "https://e4acbce33ad370e3c0fb2dacfb2f0309@o4509036673826816.ingest.us.sentry.io/4509070034403328";
+//     options.Debug = true;
+// });
 builder.Services.AddDbContext<isha_sys_devContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase")));
+
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -52,6 +61,10 @@ builder.Services.AddCors(options =>
 });
 
 
+builder.Services.AddControllers();
+
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();

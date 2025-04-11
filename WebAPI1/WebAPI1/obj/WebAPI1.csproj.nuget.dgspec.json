@@ -50,6 +50,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Isopoh.Cryptography.Argon2": {
+              "target": "Package",
+              "version": "[2.0.0, )"
+            },
             "JWT": {
               "target": "Package",
               "version": "[11.0.0, )"
@@ -67,6 +71,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[9.0.0, )"
+            },
+            "Sentry.AspNetCore": {
+              "target": "Package",
+              "version": "[5.4.0, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",

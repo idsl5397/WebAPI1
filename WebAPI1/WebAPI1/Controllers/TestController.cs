@@ -26,4 +26,11 @@ public class TestController: ControllerBase
 
         return Ok(query);
     }
+
+    [HttpGet("testSentry")]
+    public IActionResult GetTestSentry()
+    {
+        SentrySdk.CaptureMessage("Hello Sentry");
+        return Ok();
+    }
 }
