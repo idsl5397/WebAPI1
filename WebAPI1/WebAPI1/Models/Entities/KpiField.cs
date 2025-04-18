@@ -14,8 +14,10 @@ public class KpiField
     [StringLength(50)]
     public string field { get; set; }
     
-    [InverseProperty("KpiField")]
-    public virtual ICollection<KpiData> KpiDatas { get; set; } = new List<KpiData>();
+    [StringLength(50)]
+    public string enfield { get; set; }
+    
+    public virtual ICollection<KpiItem> KpiItems { get; set; } = new List<KpiItem>();
     public virtual ICollection<SuggestData> SuggestDatas { get; set; } = new List<SuggestData>();
     
     public DateTime? CreatedAt { get; set; }

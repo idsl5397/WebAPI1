@@ -65,6 +65,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();

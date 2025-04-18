@@ -18,10 +18,13 @@ public partial class isha_sys_devContext : DbContext
     public virtual DbSet<UserInfoName> UserInfoNames { get; set; }
     public virtual DbSet<DomainName> DomainNames { get; set; }
     public virtual DbSet<KpiField> KpiFields { get; set; }
-    public virtual DbSet<KpiCategory> KpiCategorys { get; set; }
-    public virtual DbSet<KpiUnitData> KpiUnitDatas { get; set; }
+    public virtual DbSet<KpiItem> KpiItems { get; set; }
+    public virtual DbSet<KpiItemName> KpiItemNames { get; set; }
+    public virtual DbSet<KpiDetailItem> KpiDetailItems { get; set; }
+    public virtual DbSet<KpiDetailItemName> KpiDetailItemNames { get; set; }
     public virtual DbSet<KpiData> KpiDatas { get; set; }
     public virtual DbSet<KpiReport> KpiReports { get; set; }
+    
     public virtual DbSet<SuggestData> SuggestDatas { get; set; }
     public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
     public virtual DbSet<DataChangeLog> DataChangeLogs { get; set; }
@@ -57,41 +60,6 @@ public partial class isha_sys_devContext : DbContext
             .HasMany(c => c.DomainNames)
             .WithOne(d => d.Company)
             .HasForeignKey(d => d.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // CompanyName 與 KpiData 關聯設定
-        modelBuilder.Entity<CompanyName>()
-            .HasMany(c => c.KpiDatas)
-            .WithOne(d => d.Company)
-            .HasForeignKey(d => d.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // KpiField 與 KpiData 關聯設定
-        modelBuilder.Entity<KpiField>()
-            .HasMany(c => c.KpiDatas)
-            .WithOne(d => d.KpiField)
-            .HasForeignKey(d => d.KpiFieldId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // KpiCategory 與 KpiData 關聯設定
-        modelBuilder.Entity<KpiCategory>()
-            .HasMany(c => c.KpiDatas)
-            .WithOne(d => d.KpiCategory)
-            .HasForeignKey(d => d.KpiCategoryId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // KpiUnitData 與 KpiData 關聯設定
-        modelBuilder.Entity<KpiUnitData>()
-            .HasMany(c => c.KpiDatas)
-            .WithOne(d => d.KpiUnitData)
-            .HasForeignKey(d => d.KpiUnitDataId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // KpiData 與 KpiReport 關聯設定
-        modelBuilder.Entity<KpiData>()
-            .HasMany(d => d.KpiReports)
-            .WithOne(r => r.KpiData)
-            .HasForeignKey(r => r.KpiDataId)
             .OnDelete(DeleteBehavior.NoAction);
         
         // CompanyName 與 SuggestData 關聯設定
@@ -247,6 +215,79 @@ public partial class isha_sys_devContext : DbContext
             .HasForeignKey(ur => ur.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         
+//--------------------     Kpi    --------------------
+
+        // KpiItemName 關聯
+        modelBuilder.Entity<KpiItemName>(entity =>
+        {
+            entity.HasOne(n => n.KpiItem)
+                .WithMany(i => i.KpiItemNames)
+                .HasForeignKey(n => n.KpiItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserEmail)
+                .HasPrincipalKey(u => u.Email);
+        });
+        
+        // KpiDetailItemName 關聯
+        modelBuilder.Entity<KpiDetailItemName>(entity =>
+        {
+            entity.HasOne(n => n.KpiDetailItem)
+                .WithMany(d => d.KpiDetailItemNames)
+                .HasForeignKey(n => n.KpiDetailItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserEmail)
+                .HasPrincipalKey(u => u.Email);
+        });
+        
+        // KpiItem 關聯
+        modelBuilder.Entity<KpiItem>(entity =>
+        {
+            entity.HasOne(i => i.KpiField)
+                .WithMany(f => f.KpiItems)
+                .HasForeignKey(i => i.KpiFieldId);
+            
+            entity.HasOne(i => i.Organization)
+                .WithMany()
+                .HasForeignKey(i => i.OrganizationId);
+            
+            entity.HasIndex(i => new { i.IndicatorNumber, i.KpiCategoryId, i.OrganizationId, i.KpiFieldId  })
+                .IsUnique();
+        });
+        
+        // KpiDetailItem 關聯
+        modelBuilder.Entity<KpiDetailItem>(entity =>
+        {
+            entity.HasOne(d => d.KpiItem)
+                .WithMany(i => i.KpiDetailItems)
+                .HasForeignKey(d => d.KpiItemId);
+        });
+        
+        // KpiData 關聯
+        modelBuilder.Entity<KpiData>(entity =>
+        {
+            entity.HasOne(d => d.DetailItem)
+                .WithMany(i => i.KpiDatas)
+                .HasForeignKey(d => d.DetailItemId);
+
+            
+            entity.HasOne(d => d.Organization)
+                .WithMany()
+                .HasForeignKey(d => d.OrganizationId);
+        });
+
+        // KpiReport 關聯
+        modelBuilder.Entity<KpiReport>()
+            .HasOne(r => r.KpiData)
+            .WithMany(d => d.KpiReports)
+            .HasForeignKey(r => r.KpiDataId);
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

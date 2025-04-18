@@ -69,4 +69,19 @@ public class OrganizationController: ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+    [HttpGet("GetCompanyTree")]
+    public async Task<OkObjectResult> GetFilteredOrgTreeAsync()
+    {
+        try
+        {
+            var organizations = await _organizationService.GetFilteredOrgTreeAsync();
+            return Ok(organizations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while getting all organizations");
+            return (OkObjectResult)StatusCode(500, "Internal server error");
+        }
+    }
 }

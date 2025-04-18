@@ -15,17 +15,17 @@ public class KpiReport
     [Range(0, 10)]
     public int Year { get; set; }
     
-    public int Quarter { get; set; } // 季度 (1~4)
+    //季度(如 Q1、Q2、Q3、Q4、H1、Y 全年)
+    public string Period { get; set; }
     
-    [Range(0, 10)]
-    public int KpiReportValue { get; set; }
+    [Column(TypeName = "decimal(18, 4)")]
+    public decimal? KpiReportValue { get; set; }
     
-    public DateTime? CreatedAt { get; set; }
-
-    public DateTime? UpdateAt { get; set; }
-    
-    public int? KpiDataId { get; set; }
+    public int KpiDataId { get; set; }
     
     [ForeignKey("KpiDataId")]
-    public virtual KpiData? KpiData { get; set; }
+    public virtual KpiData KpiData { get; set; }
+    
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdateAt { get; set; }
 }

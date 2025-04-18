@@ -37,11 +37,11 @@ public interface IOrganizationService
     Task<IEnumerable<OrganizationDto>> GetAllOrganizationsAsync();
     Task<OrganizationDto> GetOrganizationByIdAsync(int organizationId);
     Task<IEnumerable<OrganizationDto>> GetChildOrganizationsAsync(int parentId);
-    Task<bool> DeleteOrganizationAsync(int organizationId, Guid operatorId);
-    Task<bool> ActivateOrganizationAsync(int organizationId, Guid operatorId);
-    Task<bool> DeactivateOrganizationAsync(int organizationId, Guid operatorId);
     Task<List<OrganizationDto>> GetAllDescendantOrganizationsAsync(int rootParentId);
     Task<OrganizationTreeNode> GetOrganizationTreeByDomainAsync(string domain);
+    Task<List<OrganizationTreeNode>> GetFilteredOrgTreeAsync();
+    
+    List<int> GetDescendantOrganizationIds(int parentId);
 }
 public class OrganizationService:IOrganizationService
 {
@@ -183,21 +183,6 @@ public class OrganizationService:IOrganizationService
             _logger.LogError(ex, $"Error occurred while getting child organizations for parent ID {parentId}");
             throw;
         }
-    }
-
-    public Task<bool> DeleteOrganizationAsync(int organizationId, Guid operatorId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> ActivateOrganizationAsync(int organizationId, Guid operatorId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> DeactivateOrganizationAsync(int organizationId, Guid operatorId)
-    {
-        throw new NotImplementedException();
     }
     
     public async Task<List<OrganizationDto>> GetAllDescendantOrganizationsAsync(int rootParentId)
@@ -346,4 +331,69 @@ public class OrganizationService:IOrganizationService
 
         return BuildNode(root);
     }
+    
+    
+    // 針對 TypeId = 2, 3, 4 建立樹狀
+    public async Task<List<OrganizationTreeNode>> GetFilteredOrgTreeAsync()
+    {
+        // Step 1: 撈出符合類型的所有組織（含必要的導航屬性）
+        var filteredOrgs = await _db.Organizations
+            .Include(o => o.OrganizationType)
+            .Where(o => o.TypeId == 2 || o.TypeId == 3 || o.TypeId == 4)
+            .ToListAsync();
+
+        // Step 2: 建立樹狀節點（從 root 節點開始建）
+        var roots = filteredOrgs
+            .Where(o => o.ParentId == null || !filteredOrgs.Any(p => p.Id == o.ParentId))
+            .ToList();
+
+        List<OrganizationTreeNode> tree = new();
+        foreach (var root in roots)
+        {
+            tree.Add(BuildNode(root, filteredOrgs));
+        }
+
+        return tree;
+    }
+
+    private OrganizationTreeNode BuildNode(Organization org, List<Organization> scope)
+    {
+        var dto = new OrganizationDto
+        {
+            Id = org.Id,
+            Name = org.Name,
+            TypeId = org.TypeId,
+            TypeName = org.OrganizationType?.TypeName,
+        };
+
+        var node = new OrganizationTreeNode { Data = dto };
+
+        var children = scope.Where(o => o.ParentId == org.Id).ToList();
+        foreach (var child in children)
+        {
+            node.Children.Add(BuildNode(child, scope));
+        }
+
+        return node;
+    }
+    
+    
+    //工具:找到自己與底下階層組織的 ID
+    public List<int> GetDescendantOrganizationIds(int parentId)
+    {
+        var result = new List<int> { parentId };
+
+        var children = _db.Organizations
+            .Where(o => o.ParentId == parentId)
+            .Select(o => o.Id)
+            .ToList();
+
+        foreach (var childId in children)
+        {
+            result.AddRange(GetDescendantOrganizationIds(childId));
+        }
+
+        return result;
+    }
+    
 }
