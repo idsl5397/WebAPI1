@@ -28,7 +28,6 @@ public enum IsAdopted : byte
 }
 
 [Index("KpiFieldId", Name = "IX_SuggestDatas_KpiFieldId")]
-[Index("CompanyId", Name = "IX_SuggestDatas_CompanyId")]
 [Index("UserInfoNameId", Name = "IX_SuggestDatas_UserInfoNameId")]
 public class SuggestData
 {
@@ -81,11 +80,9 @@ public class SuggestData
 
     public DateTime? UpdateAt { get; set; }
     
-    public int? CompanyId { get; set; }
-
-    [ForeignKey("CompanyId")]
-    [InverseProperty("SuggestDatas")]
-    public virtual CompanyName? Company { get; set; }
+    public int? OrganizationId { get; set; }
+    [ForeignKey("OrganizationId")]
+    public virtual Organization Organization { get; set; }
     
     public int? KpiFieldId { get; set; }
     

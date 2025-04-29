@@ -21,6 +21,7 @@ public class KpiReport
     [Column(TypeName = "decimal(18, 4)")]
     public decimal? KpiReportValue { get; set; }
     
+    public bool IsSkipped { get; set; } = false;
     public int KpiDataId { get; set; }
     
     [ForeignKey("KpiDataId")]

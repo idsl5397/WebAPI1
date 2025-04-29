@@ -72,6 +72,10 @@
               "target": "Package",
               "version": "[9.0.0, )"
             },
+            "NPOI": {
+              "target": "Package",
+              "version": "[2.7.3, )"
+            },
             "Sentry.AspNetCore": {
               "target": "Package",
               "version": "[5.4.0, )"

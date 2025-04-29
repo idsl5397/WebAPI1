@@ -6,8 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebAPI1.Entities;
 
-
-[Index("CompanyId", Name = "IX_SuggestFiles_CompanyId")]
 [Index("UserInfoNameId", Name = "IX_SuggestFiles_UserInfoNameId")]
 public class SuggestFile
 {
@@ -28,11 +26,9 @@ public class SuggestFile
 
     public DateTime? UpdateAt { get; set; }
     
-    public int? CompanyId { get; set; } // 公司 (外鍵)
-
-    [ForeignKey("CompanyId")]
-    [InverseProperty("SuggestFiles")]
-    public virtual CompanyName? Company { get; set; }
+    public int? OrganizationId { get; set; }
+    [ForeignKey("OrganizationId")]
+    public virtual Organization Organization { get; set; }
 
     public int? UserInfoNameId { get; set; } //上傳人員
 

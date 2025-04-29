@@ -11,12 +11,7 @@ public partial class isha_sys_devContext : DbContext
         : base(options)
     {
     }
-    
-    public virtual DbSet<EnterpriseName> EnterpriseNames { get; set; }
-    public virtual DbSet<CompanyName> CompanyNames { get; set; }
-    public virtual DbSet<FactoryName> FactoryNames { get; set; }
     public virtual DbSet<UserInfoName> UserInfoNames { get; set; }
-    public virtual DbSet<DomainName> DomainNames { get; set; }
     public virtual DbSet<KpiField> KpiFields { get; set; }
     public virtual DbSet<KpiItem> KpiItems { get; set; }
     public virtual DbSet<KpiItemName> KpiItemNames { get; set; }
@@ -41,33 +36,12 @@ public partial class isha_sys_devContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         OnModelCreatingPartial(modelBuilder);
-        // EnterpriseName 與 CompanyName 關聯設定
-        modelBuilder.Entity<EnterpriseName>()
-            .HasMany(e => e.CompanyNames)
-            .WithOne(c => c.Enterprise)
-            .HasForeignKey(c => c.EnterpriseId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        // CompanyName 與 FactoryName 關聯設定
-        modelBuilder.Entity<CompanyName>()
-            .HasMany(c => c.FactoryNames)
-            .WithOne(f => f.Company)
-            .HasForeignKey(f => f.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
         
-        // CompanyName 與 DomainName 關聯設定
-        modelBuilder.Entity<CompanyName>()
-            .HasMany(c => c.DomainNames)
-            .WithOne(d => d.Company)
-            .HasForeignKey(d => d.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
-        
-        // CompanyName 與 SuggestData 關聯設定
-        modelBuilder.Entity<CompanyName>()
-            .HasMany(c => c.SuggestDatas)
-            .WithOne(d => d.Company)
-            .HasForeignKey(d => d.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
+        // Organization 與 SuggestData 關聯設定
+        modelBuilder.Entity<SuggestData>()
+            .HasOne(c => c.Organization)
+            .WithMany()
+            .HasForeignKey(d => d.OrganizationId);
         
         // KpiField 與 SuggestData 關聯設定
         modelBuilder.Entity<KpiField>()
@@ -83,12 +57,11 @@ public partial class isha_sys_devContext : DbContext
             .HasForeignKey(s => s.UserInfoNameId)
             .OnDelete(DeleteBehavior.NoAction);
         
-        // CompanyName 與 SuggestFile 關聯設定
-        modelBuilder.Entity<CompanyName>()
-            .HasMany(c => c.SuggestFiles)
-            .WithOne(d => d.Company)
-            .HasForeignKey(d => d.CompanyId)
-            .OnDelete(DeleteBehavior.NoAction);
+        // Organization 與 SuggestFile 關聯設定
+        modelBuilder.Entity<SuggestFile>()
+            .HasOne(c => c.Organization)
+            .WithMany()
+            .HasForeignKey(d => d.OrganizationId);
         
         // UserInfo 與 SuggestFile 關聯設定
         modelBuilder.Entity<UserInfoName>()
@@ -288,6 +261,10 @@ public partial class isha_sys_devContext : DbContext
             .HasOne(r => r.KpiData)
             .WithMany(d => d.KpiReports)
             .HasForeignKey(r => r.KpiDataId);
+        
+        modelBuilder.Entity<KpiReport>()
+            .HasIndex(r => new { r.KpiDataId, r.Year, r.Period })
+            .IsUnique();
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

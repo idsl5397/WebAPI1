@@ -14,19 +14,7 @@ public class TestController: ControllerBase
         _db = db;
     }
 
-    [HttpGet("GetDomain")]
-    public IActionResult GetDomain()
-    {
-        var query = from domain in _db.DomainNames.AsNoTracking()
-            select new
-            {
-                name = domain.domain,
-                Company = domain.Company,
-            };
-
-        return Ok(query);
-    }
-
+    
     [HttpGet("testSentry")]
     public IActionResult GetTestSentry()
     {

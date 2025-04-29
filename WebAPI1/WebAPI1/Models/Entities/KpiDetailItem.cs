@@ -16,6 +16,9 @@ public class KpiDetailItem
     [StringLength(50)]
     public string Unit { get; set; }
     
+    [StringLength(3)]
+    public string? ComparisonOperator { get; set; }
+    
     public virtual ICollection<KpiData> KpiDatas { get; set; } = new List<KpiData>();
     public virtual ICollection<KpiDetailItemName> KpiDetailItemNames { get; set; } = new List<KpiDetailItemName>();
     

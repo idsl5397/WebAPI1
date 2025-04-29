@@ -34,51 +34,18 @@ public class KpiController: ControllerBase
         }
     }
     
-    [HttpPost("import-test-single")]
-    public async Task<IActionResult> ImportTestSingle()
-    {
-        try
-        {
-            var result = await _kpiService.InsertKpiRecordAsync(new KpiExcelRow
-            {
-                CompanyId = 1,
-                KpiCategoryName = "基礎型",
-                FieldName = "PSM",
-                IndicatorNumber = 1,
-                IndicatorName = "製程安全資訊之完整性",
-                DetailItemName = "需具備製程安全資訊文件數",
-                Unit = "件",
-                IsApplied = true,
-                BaselineYear = "110年",
-                BaselineValue = 25,
-                TargetValue = 25,
-                Remarks = "",
-                ExecutionByYear = new Dictionary<int, int>
-                {
-                    { 111, 25 },
-                    { 112, 25 },
-                    { 113, 25 }
-                }
-            });
-
-            return Ok(new { success = true, message = result });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
-    }
-    
     [HttpPost("import-single")]
     public async Task<IActionResult> InsertKpiData([FromBody] KpisingleRow row)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, message = "資料驗證失敗" });
-
         try
         {
-            var result = await _kpiService.InsertKpiData(row);
-            return Ok(new { success = true, message = result });
+            var (success, message) = await _kpiService.InsertKpiData(row);
+            if (!success)
+                return BadRequest(new { success = false, message });
+
+            return Ok(new { success = true, message });
         }
         catch (Exception ex)
         {
@@ -88,9 +55,111 @@ public class KpiController: ControllerBase
     
     
     [HttpGet("display")]
-    public async Task<IActionResult> GetDisplayKpis([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear)
+    public async Task<IActionResult> GetKpiDisplayAsync([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear)
     {
         var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear);
         return Ok(new { success = true, data = result });
+    }
+    
+    
+    [HttpGet("kpidata-for-report")]
+    public async Task<IActionResult> GetKpiDataDtoByOrganizationIdAsync(int organizationId)
+    {
+        var kpiDataList = await _kpiService.GetKpiDataDtoByOrganizationIdAsync(organizationId);
+    
+        if (kpiDataList.Count == 0)
+            return Ok(new { success = false, message = "該單位目前無 KPI 可填報", data = new List<KpiDataDto>() });
+
+        return Ok(new { success = true, data = kpiDataList });
+    }
+    
+    [HttpPost("submit-kpi-report")]
+    public async Task<IActionResult> SubmitKpiReportsAsync([FromBody] List<KpiReportInsertDto> reports)
+    {
+        var result = await _kpiService.SubmitKpiReportsAsync(reports);
+        return Ok(new
+        {
+            success = result.Success,
+            message = result.Message
+        });
+    }
+    
+    // 上傳Excel並預覽前五筆
+    [HttpPost("import-preview")]
+    public async Task<IActionResult> ImportPreview([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("請上傳檔案。");
+
+        var previewData = await _kpiService.ParseExcelAsync(file.OpenReadStream());
+        return Ok(previewData);
+    }
+    
+    /// <summary>
+    /// 批次匯入KPI資料
+    /// </summary>
+    [HttpPost("import-confirm")]
+    public async Task<IActionResult> BatchImportConfirm([FromBody] List<KpimanyRow> rows)
+    {
+        if (rows == null || rows.Count == 0)
+        {
+            return BadRequest("匯入資料為空！");
+        }
+
+        var (success, message) = await _kpiService.BatchInsertKpiDataAsync(rows);
+
+        if (success)
+        {
+            return Ok(new
+            {
+                success = true,
+                message
+            });
+        }
+        else
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message
+            });
+        }
+    }
+    
+    [HttpDelete("delete-kpidata-by-organization/{organizationId}")]
+    public async Task<IActionResult> DeleteKpiDataByOrganization(int organizationId)
+    {
+        try
+        {
+            var targetData = await _db.KpiDatas
+                .Where(d => d.OrganizationId == organizationId)
+                .ToListAsync();
+
+            if (!targetData.Any())
+            {
+                return NotFound($"找不到 OrganizationId = {organizationId} 的資料。");
+            }
+
+            _db.KpiDatas.RemoveRange(targetData);
+            await _db.SaveChangesAsync();
+
+            return Ok($"✅ 成功刪除 {targetData.Count} 筆 KpiData 資料。");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"❌ 刪除失敗，原因：{ex.Message}");
+        }
+    }
+    
+    [HttpGet("report-history")]
+    public async Task<IActionResult> GetReportHistory([FromQuery] int kpiDataId)
+    {
+        var reports = await _db.KpiReports
+            .Where(r => r.KpiDataId == kpiDataId)
+            .OrderByDescending(r => r.Year)
+            .ThenByDescending(r => r.Period)
+            .ToListAsync();
+
+        return Ok(reports);
     }
 }
