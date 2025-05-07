@@ -165,4 +165,9 @@ public class User
     /// 導覽屬性：密碼歷史記錄
     /// </summary>
     public virtual ICollection<UserPasswordHistory> PasswordHistory { get; set; } = new List<UserPasswordHistory>();
+    
+    /// <summary>
+    /// 導覽屬性：建議資料
+    /// </summary>
+    public virtual ICollection<SuggestData> SuggestDatas { get; set; } = new List<SuggestData>();
 }

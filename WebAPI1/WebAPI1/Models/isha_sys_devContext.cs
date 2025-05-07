@@ -33,9 +33,26 @@ public partial class isha_sys_devContext : DbContext
     public virtual DbSet<UserRole> UserRoles { get; set; }
     public virtual DbSet<UserPasswordHistory> UserRPasswordHistories { get; set; }
     
+    public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
+    public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         OnModelCreatingPartial(modelBuilder);
+        
+        // SuggestEventType 與 SuggestData 關聯設定
+        modelBuilder.Entity<SuggestEventType>()
+            .HasMany(e => e.SuggestDatas)
+            .WithOne(d => d.SuggestEventType)
+            .HasForeignKey(d => d.SuggestEventTypeId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // SuggestionType 與 SuggestData 關聯設定
+        modelBuilder.Entity<SuggestionType>()
+            .HasMany(t => t.SuggestDatas)
+            .WithOne(d => d.SuggestionType)
+            .HasForeignKey(d => d.SuggestionTypeId)
+            .OnDelete(DeleteBehavior.NoAction);
         
         // Organization 與 SuggestData 關聯設定
         modelBuilder.Entity<SuggestData>()
@@ -51,10 +68,10 @@ public partial class isha_sys_devContext : DbContext
             .OnDelete(DeleteBehavior.NoAction);
         
         // UserInfo 與 SuggestData 關聯設定
-        modelBuilder.Entity<UserInfoName>()
+        modelBuilder.Entity<User>()
             .HasMany(c => c.SuggestDatas)
-            .WithOne(s => s.UserInfoName)
-            .HasForeignKey(s => s.UserInfoNameId)
+            .WithOne(s => s.User)
+            .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.NoAction);
         
         // Organization 與 SuggestFile 關聯設定

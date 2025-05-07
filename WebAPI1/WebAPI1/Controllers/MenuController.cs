@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using WebAPI1.Entities;
 using WebAPI1.Models;
 using Microsoft.AspNetCore.Authorization;
+using WebAPI1.Authorization;
 
 namespace WebAPI1.Controllers
 {
     [Route("[controller]")]
     [ApiController]
     [Authorize]
+    [RequireAccessToken]
     public class MenuController : ControllerBase
     {
         private readonly isha_sys_devContext _db;

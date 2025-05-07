@@ -21,7 +21,6 @@ namespace WebAPI1.Controllers
     
     [Route("[controller]")]
     [ApiController]
-
     public class UserController : ControllerBase
     {
         private readonly isha_sys_devContext _db;

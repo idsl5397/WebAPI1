@@ -42,13 +42,15 @@ public class UserService:IUserService
     private readonly isha_sys_devContext _db;
     private readonly ILogger<UserService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IAuthService _authService;
     public UserService(
         isha_sys_devContext db,
-        ILogger<UserService> logger,IConfiguration configuration)
+        ILogger<UserService> logger,IConfiguration configuration,IAuthService authService)
     {
         _db = db;
         _logger = logger;
         _configuration = configuration;
+        _authService = authService;
     }
     public async Task<bool> CreateUserAsync(RegisterUserDto dto)
     {
@@ -89,7 +91,7 @@ public class UserService:IUserService
     {
         var user = await _db.Users
             .Where(u => u.Email == dto.Usermail)
-            .Select(u => new { u.Nickname, u.Email, u.PasswordHash })
+            .Select(u => new { u.Id,u.Nickname, u.Email, u.PasswordHash })
             .FirstOrDefaultAsync();
 
         if (user == null)
@@ -111,31 +113,15 @@ public class UserService:IUserService
         }
 
         // 產生 JWT
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, user.Nickname),
-            new Claim(ClaimTypes.Email, user.Email),
-        };
-
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
-            signingCredentials: creds
-        );
-
-        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
+        var accessToken = _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname);
+        var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
+        _authService.SetRefreshTokenCookie(refreshToken);
+        
         return new LoginResultDto
         {
             Success = true,
             Message = "登入成功",
-            Token = jwt,
+            Token = accessToken,
             Nickname = user.Nickname,
             Email = user.Email
         };

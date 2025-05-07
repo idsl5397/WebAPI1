@@ -13,6 +13,7 @@ public class KpiReportInsertDto
     public string Quarter { get; set; } // Q1, Q2, Q3, Q4, Y
     public decimal? Value { get; set; }
     public bool IsSkipped { get; set; }
+    public string Remark { get; set; }
 }
 public class CreateKpiFieldDto
 {
@@ -419,6 +420,7 @@ public class KpiService:IKpiService
             Period = r.Quarter,
             KpiReportValue = r.IsSkipped ? null : r.Value,
             IsSkipped = r.IsSkipped,
+            Remarks = r.Remark,
             CreatedAt = now,
             UpdateAt = now
         }).ToList();

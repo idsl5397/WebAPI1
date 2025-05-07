@@ -55,6 +55,11 @@ public class RegisterController: ControllerBase
         try
         {
             var orgInfo = await _organizationService.GetOrganizationTreeByDomainAsync(domain);
+            if (orgInfo == null)
+            {
+                // ✅ 這裡加上「網域未允許」的判斷
+                return BadRequest(new { message = "此 Email 所屬網域未被允許註冊" });
+            }
             return Ok(orgInfo);
         }
         catch (Exception ex)

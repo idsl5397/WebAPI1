@@ -6,29 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebAPI1.Entities;
 
-public enum ReviewType : byte // 使用 byte 節省空間
-{
-    書面審查會議 = 0,
-    實地進場查驗 = 1,
-    領先指標輔導 = 2
-}
-public enum SuggestType : byte
-{
-    改善建議 = 0,
-    精進建議 = 1,
-    可資借鏡 = 2
-}
 
 public enum IsAdopted : byte
 {
-    是 = 0,
-    否 = 1,
+    否 = 0,
+    是 = 1,
     不參採 = 2,
     詳備註 = 3
 }
 
-[Index("KpiFieldId", Name = "IX_SuggestDatas_KpiFieldId")]
-[Index("UserInfoNameId", Name = "IX_SuggestDatas_UserInfoNameId")]
 public class SuggestData
 {
     [Key]
@@ -42,12 +28,19 @@ public class SuggestData
     public string MonthAndDay { get; set; }
     
     public string SuggestionContent { get; set; } // 建議內容
+
+    // 會議/活動類別
+    public int SuggestEventTypeId { get; set; }
+
+    [ForeignKey("SuggestEventTypeId")]
+    public SuggestEventType SuggestEventType { get; set; }
+
+    // 建議類別
+    public int SuggestionTypeId { get; set; }
+
+    [ForeignKey("SuggestionTypeId")]
+    public SuggestionType SuggestionType { get; set; }
     
-    [Column(TypeName = "tinyint")] // 會議/活動類別
-    public ReviewType ReviewMethod { get; set; }
-    
-    [Column(TypeName = "tinyint")] // 建議類別
-    public SuggestType SuggestType { get; set; }
     
     [Column(TypeName = "tinyint")] // 是否參採
     public IsAdopted IsAdopted { get; set; }
@@ -90,8 +83,8 @@ public class SuggestData
     [InverseProperty("SuggestDatas")]
     public virtual KpiField? KpiField { get; set; }
     
-    public int? UserInfoNameId { get; set; } //委員使用者
+    public Guid UserId { get; set; } //委員使用者
 
-    [ForeignKey("UserInfoNameId")]
-    public virtual UserInfoName? UserInfoName { get; set; }
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
 }
