@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 ENV Logging__LogLevel__Default=Information \
     Logging__LogLevel__Microsoft.AspNetCore=Warning \
     AllowedHosts=* \
+    ConnectionStrings__Redis=redis:6379,password=MyP@ssw0rd123,abortConnect=false,connectRetry=3 \
     JWTSETTINGS__VALIDATEISSUER=true \
     JWTSETTINGS__VALIDATEAUDIENCE=true \
     JWTSETTINGS__VALIDATELIFETIME=true \
