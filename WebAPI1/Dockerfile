@@ -39,11 +39,5 @@ ENV Logging__LogLevel__Default=Information \
     Logging__LogLevel__Microsoft.AspNetCore=Warning \
     AllowedHosts=* \
     ConnectionStrings__Redis=redis:6379,password=MyP@ssw0rd123,abortConnect=false,connectRetry=3 \
-    JWTSETTINGS__VALIDATEISSUER=true \
-    JWTSETTINGS__VALIDATEAUDIENCE=true \
-    JWTSETTINGS__VALIDATELIFETIME=true \
-    JWTSETTINGS__KEY=bXktc2VjcmV0LXNlY3JldC1rZXktMTIzNDU= \
-    JWTSETTINGS__ISSUER=http://localhost:5013/ \
-    JWTSETTINGS__AUDIENCE=http://localhost:3000/
 
 ENTRYPOINT ["dotnet", "WebAPI1.dll"]
