@@ -38,6 +38,6 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 ENV Logging__LogLevel__Default=Information \
     Logging__LogLevel__Microsoft.AspNetCore=Warning \
     AllowedHosts=* \
-    ConnectionStrings__Redis=redis:6379,password=MyP@ssw0rd123,abortConnect=false,connectRetry=3
+    ConnectionStrings__Redis=kpi_redis:6380,password=MyP@ssw0rd123,abortConnect=false,connectRetry=3
 
 ENTRYPOINT ["dotnet", "WebAPI1.dll"]
