@@ -19,13 +19,10 @@ public class SuggestData
 {
     [Key]
     public int Id { get; set; }
-    
-    [Range(0, 10)]
-    public int Year { get; set; } // 年份
-    
-    public int Quarter { get; set; } // 季度 (1~4)
-    
-    public string MonthAndDay { get; set; }
+
+    //建議日期
+    [Column(TypeName = "date")]
+    public DateTime Date { get; set; }
     
     public string SuggestionContent { get; set; } // 建議內容
 
@@ -57,7 +54,7 @@ public class SuggestData
     [Column(TypeName = "tinyint")] // 是否完成改善
     public IsAdopted Completed { get; set; }
     
-    public int? DoneYear { get; set; } // 完成/預計完成日期 年份
+    public int? DoneYear { get; set; } // 完成/預計完成日期 西元年份
     public int? DoneMonth { get; set; } // 完成/預計完成日期 月份
     
     [Column(TypeName = "tinyint")] // 是否平行展開

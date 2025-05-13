@@ -13,7 +13,8 @@ public class KpiReportInsertDto
     public string Quarter { get; set; } // Q1, Q2, Q3, Q4, Y
     public decimal? Value { get; set; }
     public bool IsSkipped { get; set; }
-    public string Remark { get; set; }
+    public string? Remark { get; set; }
+    public ReportStatus Status { get; set; }
 }
 public class CreateKpiFieldDto
 {
@@ -45,11 +46,13 @@ public class KpisingleRow
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
+    public string ComparisonOperator { get; set; }
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal BaselineValue { get; set; }
     public decimal TargetValue { get; set; }
     public string Remarks { get; set; }
+    public int KpiCycleId { get; set; }
 }
 
 public class KpimanyRow
@@ -65,6 +68,7 @@ public class KpimanyRow
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal? BaselineValue { get; set; }
+    public string? ComparisonOperator { get; set; }
     public decimal? TargetValue { get; set; }
     public string Remarks { get; set; }
 }
@@ -89,21 +93,81 @@ public class KpiDisplayDto
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal? BaselineValue { get; set; }
+    public string? ComparisonOperator { get; set; }
     public decimal? TargetValue { get; set; }
+    
+    public int? LatestReportYear { get; set; }
+    public string? LatestReportPeriod { get; set; }
+    public decimal? LatestReportValue { get; set; }
     public string? Remarks { get; set; }
     public List<KpiReportDto> Reports { get; set; } = new();
 }
 
+public class KpiimportexcelDto
+{
+    public int Id { get; set; }
+    public string Company { get; set; }
+    public string? ProductionSite { get; set; }
+    public string Category { get; set; }
+    public string Field { get; set; }
+    public int IndicatorNumber { get; set; }
+    public string IndicatorName { get; set; }
+    public string DetailItemName { get; set; }
+    public string Unit { get; set; }
+    public bool IsApplied { get; set; }
+    public string BaselineYear { get; set; }
+    public decimal? BaselineValue { get; set; }
+    public string? ComparisonOperator { get; set; }
+    public decimal? TargetValue { get; set; }
+    public string? NewBaselineYear { get; set; }
+    public decimal? NewBaselineValue { get; set; }
+    public decimal? NewExecutionValue { get; set; }
+    public decimal? NewTargetValue { get; set; }
+    public string? NewRemarks { get; set; }
+    public string? Remarks { get; set; }
+    
+    public int KpiCycleId { get; set; }
+    public List<KpiReportDto> Reports { get; set; } = new();
+}
+
+
 public interface IKpiService
 {
+    
     Task<KpiField> CreateKpiFieldAsync(CreateKpiFieldDto dto);
    
+    //匯入單一筆指標資料
     Task<(bool Success, string Message)> InsertKpiData(KpisingleRow row);
     Task<List<KpiDisplayDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
     Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId);
+    
+    //輸入執行狀況送出
     Task<(bool Success, string Message)> SubmitKpiReportsAsync(List<KpiReportInsertDto> reports);
+    //輸入執行狀況暫存
+    Task<(bool Success, string Message)> SaveDraftReportsAsync(List<KpiReportInsertDto> reports);
+    //顯示暫存資料
+    Task<List<KpiReportInsertDto>> LoadDraftReportsAsync(int organizationId, int year, string quarter);
+
+    //想做延遲分頁顯示功能但未完成
+    Task<KpiService.PagedResult<KpiDisplayDto>> GetKpiDisplayPagedAsync(
+        int page = 1,
+        int pageSize = 50,
+        int? organizationId = null,
+        string? categoryName = null,
+        string? fieldName = null);
+    
+    //使用者匯入績效指標資料前顯示使用
     Task<List<KpimanyRow>> ParseExcelAsync(Stream fileStream);
+    //使用者匯入績效指標資料
     Task<(bool Success, string Message)> BatchInsertKpiDataAsync(List<KpimanyRow> rows);
+
+    //系統使用者匯入所有資料前顯示使用
+    List<KpiimportexcelDto> ParseFullImportExcel(Stream fileStream);
+    //系統使用者匯入所有資料使用
+    Task<(bool Success, string Message)> BatchFullKpiDataAsync(List<KpiimportexcelDto> rows);
+    
+    //讀取cycle資料
+    Task<List<KpiCycle>> GetAllCyclesAsync();
 }
 
 public class KpiService:IKpiService
@@ -111,7 +175,18 @@ public class KpiService:IKpiService
     private readonly isha_sys_devContext _db;
     private readonly ILogger<KpiService> _logger;
     private readonly IOrganizationService _organizationService;
-    
+    private static int GetPeriodOrder(string? period)
+    {
+        return period switch
+        {
+            "Q1" => 1,
+            "Q2" => 2,
+            "Q3" => 3,
+            "Q4" => 4,
+            "Y" => 5,
+            _ => 0
+        };
+    }
     public KpiService(
         isha_sys_devContext db,
         ILogger<KpiService> logger,
@@ -231,6 +306,7 @@ public class KpiService:IKpiService
             {
                 KpiItemId = item.Id,
                 Unit = row.Unit,
+                ComparisonOperator = row.ComparisonOperator,
                 CreateTime = now,
                 UploadTime = now
             };
@@ -273,7 +349,8 @@ public class KpiService:IKpiService
         var existsData = await _db.KpiDatas.AnyAsync(d =>
             d.OrganizationId == organization.Id &&
             d.DetailItemId == detailItem.Id &&
-            d.ProductionSite == row.ProductionSite);
+            d.ProductionSite == row.ProductionSite &&
+            d.BaselineYear == row.BaselineYear);
 
         if (existsData)
         {
@@ -292,7 +369,8 @@ public class KpiService:IKpiService
                 TargetValue = row.TargetValue,
                 Remarks = row.Remarks,
                 CreatedAt = now,
-                UpdateAt = now
+                UpdateAt = now,
+                KpiCycleId = row.KpiCycleId,
             };
             _db.KpiDatas.Add(kpiData);
             await _db.SaveChangesAsync();
@@ -354,8 +432,44 @@ public class KpiService:IKpiService
             IsApplied = d.IsApplied,
             BaselineYear = d.BaselineYear,
             BaselineValue = d.BaselineValue,
+            ComparisonOperator = d.DetailItem.ComparisonOperator,
             TargetValue = d.TargetValue,
             Remarks = d.Remarks,
+
+            // ➕ 新增：最新報表欄位
+            LatestReportYear = d.KpiReports
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => 
+                    r.Period == "Y" ? 5 :
+                    r.Period == "Q4" ? 4 :
+                    r.Period == "Q3" ? 3 :
+                    r.Period == "Q2" ? 2 :
+                    r.Period == "Q1" ? 1 : 0)
+                .Select(r => r.Year)
+                .FirstOrDefault(),
+
+            LatestReportPeriod = d.KpiReports
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => 
+                    r.Period == "Y" ? 5 :
+                    r.Period == "Q4" ? 4 :
+                    r.Period == "Q3" ? 3 :
+                    r.Period == "Q2" ? 2 :
+                    r.Period == "Q1" ? 1 : 0)
+                .Select(r => r.Period)
+                .FirstOrDefault(),
+
+            LatestReportValue = d.KpiReports
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => 
+                    r.Period == "Y" ? 5 :
+                    r.Period == "Q4" ? 4 :
+                    r.Period == "Q3" ? 3 :
+                    r.Period == "Q2" ? 2 :
+                    r.Period == "Q1" ? 1 : 0)
+                .Select(r => r.KpiReportValue)
+                .FirstOrDefault(),
+
             Reports = d.KpiReports
                 .Where(r => !startYear.HasValue || r.Year >= startYear)
                 .Where(r => !endYear.HasValue || r.Year <= endYear)
@@ -369,6 +483,80 @@ public class KpiService:IKpiService
         }).ToListAsync();
     
         return result;
+    }
+    
+    //分頁顯示
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+    public async Task<PagedResult<KpiDisplayDto>> GetKpiDisplayPagedAsync(
+        int page = 1,
+        int pageSize = 50,
+        int? organizationId = null,
+        string? categoryName = null,
+        string? fieldName = null)
+    {
+        var orgIds = organizationId.HasValue
+            ? _organizationService.GetDescendantOrganizationIds(organizationId.Value)
+            : null;
+
+        var query = _db.KpiDatas
+            .AsNoTracking()
+            .Where(d =>
+                (!organizationId.HasValue || orgIds.Contains(d.Organization.Id)) &&
+                (string.IsNullOrWhiteSpace(categoryName) ||
+                    (categoryName == "客製型" ? 1 : 0) == d.DetailItem.KpiItem.KpiCategoryId) &&
+                (string.IsNullOrWhiteSpace(fieldName) ||
+                    d.DetailItem.KpiItem.KpiField.field == fieldName)
+            );
+
+        var totalCount = await query.CountAsync(); // ⬅️ 計算總筆數（給前端用）
+
+        var pagedData = await query
+            .OrderByDescending(d => d.Id) // ✅ 可以改成你想排序的欄位
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(d => new KpiDisplayDto
+            {
+                Id = d.Id,
+                Company = d.Organization.Name,
+                ProductionSite = d.ProductionSite,
+                Category = d.DetailItem.KpiItem.KpiCategoryId == 1 ? "客製型" : "基礎型",
+                Field = d.DetailItem.KpiItem.KpiField.field,
+                IndicatorNumber = d.DetailItem.KpiItem.IndicatorNumber,
+                IndicatorName = d.DetailItem.KpiItem.KpiItemNames
+                    .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
+                DetailItemName = d.DetailItem.KpiDetailItemNames
+                    .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
+                Unit = d.DetailItem.Unit,
+                BaselineYear = d.BaselineYear,
+                BaselineValue = d.BaselineValue,
+                TargetValue = d.TargetValue,
+                LatestReportYear = d.KpiReports
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r => GetPeriodOrder(r.Period))
+                    .Select(r => r.Year)
+                    .FirstOrDefault(),
+                LatestReportPeriod = d.KpiReports
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r => GetPeriodOrder(r.Period))
+                    .Select(r => r.Period)
+                    .FirstOrDefault(),
+                LatestReportValue = d.KpiReports
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r => GetPeriodOrder(r.Period))
+                    .Select(r => r.KpiReportValue)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return new PagedResult<KpiDisplayDto>
+        {
+            Items = pagedData,
+            TotalCount = totalCount
+        };
     }
     
     public async Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId)
@@ -413,39 +601,130 @@ public class KpiService:IKpiService
 
         var now = DateTime.UtcNow;
 
-        var entities = reports.Select(r => new KpiReport
+        foreach (var r in reports)
         {
-            KpiDataId = r.KpiDataId,
-            Year = r.Year,
-            Period = r.Quarter,
-            KpiReportValue = r.IsSkipped ? null : r.Value,
-            IsSkipped = r.IsSkipped,
-            Remarks = r.Remark,
-            CreatedAt = now,
-            UpdateAt = now
-        }).ToList();
+            var existing = await _db.KpiReports.FirstOrDefaultAsync(x =>
+                x.KpiDataId == r.KpiDataId &&
+                x.Year == r.Year &&
+                x.Period == r.Quarter);
+
+            if (existing != null)
+            {
+                if (existing.Status == ReportStatus.Draft) // 若已有草稿，就更新成正式
+                {
+                    existing.KpiReportValue = r.IsSkipped ? null : r.Value;
+                    existing.IsSkipped = r.IsSkipped;
+                    existing.Remarks = r.Remark;
+                    existing.Status = ReportStatus.Finalized;
+                    existing.UpdateAt = now;
+                }
+                else
+                {
+                    return (false, $"KPI ID {r.KpiDataId} 在 {r.Year} 年 {r.Quarter} 已提交過，請勿重複提交");
+                }
+            }
+            else
+            {
+                var entity = new KpiReport
+                {
+                    KpiDataId = r.KpiDataId,
+                    Year = r.Year,
+                    Period = r.Quarter,
+                    KpiReportValue = r.IsSkipped ? null : r.Value,
+                    IsSkipped = r.IsSkipped,
+                    Remarks = r.Remark,
+                    CreatedAt = now,
+                    UpdateAt = now,
+                    Status = ReportStatus.Finalized
+                };
+                _db.KpiReports.Add(entity);
+            }
+        }
 
         try
         {
-            await _db.KpiReports.AddRangeAsync(entities);
             await _db.SaveChangesAsync();
-
             return (true, "KPI 報告已成功提交");
-        }
-        catch (DbUpdateException dbEx)
-        {
-            // ⛔ 簡單檢查重複鍵的訊息
-            if (dbEx.InnerException?.Message.Contains("duplicate") == true || dbEx.InnerException?.Message.Contains("UNIQUE") == true)
-            {
-                return (false, "已有相同年度與季度的報告資料，請勿重複提交");
-            }
-
-            return (false, "資料庫更新失敗：" + dbEx.InnerException?.Message);
         }
         catch (Exception ex)
         {
             return (false, $"提交失敗：{ex.Message}");
         }
+    }
+    
+    public async Task<(bool Success, string Message)> SaveDraftReportsAsync(List<KpiReportInsertDto> reports)
+    {
+        if (reports == null || reports.Count == 0)
+            return (false, "無任何資料可儲存。");
+
+        var now = DateTime.UtcNow;
+
+        foreach (var dto in reports)
+        {
+            if (dto.IsSkipped && string.IsNullOrWhiteSpace(dto.Remark))
+            {
+                return (false, $"KPI ID {dto.KpiDataId} 勾選跳過但未填寫備註。");
+            }
+
+            // 檢查是否已有相同 KPI 的草稿
+            var existing = await _db.KpiReports.FirstOrDefaultAsync(r =>
+                r.KpiDataId == dto.KpiDataId &&
+                r.Year == dto.Year &&
+                r.Period == dto.Quarter &&
+                r.Status == ReportStatus.Draft
+            );
+
+            if (existing != null)
+            {
+                // ✅ 更新已存在草稿
+                existing.KpiReportValue = dto.IsSkipped ? null : dto.Value;
+                existing.IsSkipped = dto.IsSkipped;
+                existing.Remarks = dto.Remark;
+                existing.UpdateAt = now;
+            }
+            else
+            {
+                // ✅ 新增新的草稿
+                var report = new KpiReport
+                {
+                    KpiDataId = dto.KpiDataId,
+                    Year = dto.Year,
+                    Period = dto.Quarter,
+                    KpiReportValue = dto.IsSkipped ? null : dto.Value,
+                    IsSkipped = dto.IsSkipped,
+                    Remarks = dto.Remark,
+                    Status = ReportStatus.Draft,
+                    CreatedAt = now,
+                    UpdateAt = now
+                };
+
+                _db.KpiReports.Add(report);
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        return (true, "草稿儲存成功");
+    }
+    
+    public async Task<List<KpiReportInsertDto>> LoadDraftReportsAsync(int organizationId, int year, string quarter)
+    {
+        var drafts = await _db.KpiReports
+            .Where(r => r.Status == ReportStatus.Draft &&
+                        r.Year == year &&
+                        r.Period == quarter &&
+                        r.KpiData.OrganizationId == organizationId)
+            .Select(r => new KpiReportInsertDto
+            {
+                KpiDataId = r.KpiDataId,
+                Value = r.KpiReportValue,
+                IsSkipped = r.IsSkipped,
+                Remark = r.Remarks,
+                Year = r.Year,
+                Quarter = r.Period
+            })
+            .ToListAsync();
+
+        return drafts;
     }
     
     private static string GetCellString(ICell cell)
@@ -502,8 +781,9 @@ public class KpiService:IKpiService
                 IsApplied = GetCellString(row.GetCell(9)) == "是",
                 BaselineYear = GetCellString(row.GetCell(10)),
                 BaselineValue = GetCellDecimal(row.GetCell(11)),
-                TargetValue = GetCellDecimal(row.GetCell(12)),
-                Remarks = GetCellString(row.GetCell(13))
+                ComparisonOperator = GetCellString(row.GetCell(12)),
+                TargetValue = GetCellDecimal(row.GetCell(13)),
+                Remarks = GetCellString(row.GetCell(14))
             };
 
             result.Add(dto);
@@ -526,9 +806,19 @@ public class KpiService:IKpiService
         int failCount = 0;
         List<string> failDetails = new();
 
+        // 預先查出所有領域
+        var allFieldsList = await _db.KpiFields.ToListAsync();
+        
         // 一次查好基礎資料，放到記憶體Dictionary加速
         var allOrganizations = await _db.Organizations.ToDictionaryAsync(o => o.Id);
-        var allFields = await _db.KpiFields.ToDictionaryAsync(f => f.enfield);
+        var allFields = allFieldsList
+            .SelectMany(f => new[]
+            {
+                new { Key = f.field?.Trim().ToLower(), Value = f },
+                new { Key = f.enfield?.Trim().ToLower(), Value = f }
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key))
+            .ToDictionary(x => x.Key, x => x.Value);
         var allKpiItems = await _db.KpiItems
             .Include(i => i.KpiItemNames)
             .ToListAsync();
@@ -548,7 +838,13 @@ public class KpiService:IKpiService
                         throw new Exception($"找不到公司：{row.OrganizationId}");
 
                     // 2. 領域
-                    if (!allFields.TryGetValue(row.FieldName, out var field))
+                    var normalizedFieldName = row.FieldName?.Trim().ToLower();
+                    var field = allFields.Values.FirstOrDefault(f =>
+                        (!string.IsNullOrWhiteSpace(f.field) && f.field.Trim().ToLower() == normalizedFieldName) ||
+                        (!string.IsNullOrWhiteSpace(f.enfield) && f.enfield.Trim().ToLower() == normalizedFieldName)
+                    );
+
+                    if (field == null)
                         throw new Exception($"找不到領域：{row.FieldName}");
 
                     // 3. 判斷指標類型
@@ -606,6 +902,7 @@ public class KpiService:IKpiService
                         {
                             KpiItemId = item.Id,
                             Unit = row.Unit,
+                            ComparisonOperator = row.ComparisonOperator,
                             CreateTime = now,
                             UploadTime = now,
                             KpiDetailItemNames = new List<KpiDetailItemName>
@@ -649,7 +946,8 @@ public class KpiService:IKpiService
                         TargetValue = row.TargetValue,
                         Remarks = row.Remarks,
                         CreatedAt = now,
-                        UpdateAt = now
+                        UpdateAt = now,
+                        KpiCycleId = 2
                     });
 
                     successCount++;
@@ -681,5 +979,296 @@ public class KpiService:IKpiService
         }
     }
     
+    public List<KpiimportexcelDto> ParseFullImportExcel(Stream fileStream)
+    {
+        var workbook = new XSSFWorkbook(fileStream);
+        var sheet = workbook.GetSheetAt(0);
+        var result = new List<KpiimportexcelDto>();
+
+        for (int rowIndex = 1; rowIndex <= sheet.LastRowNum; rowIndex++)
+        {
+            var row = sheet.GetRow(rowIndex);
+            if (row == null) continue;
+
+            try
+            {
+                var data = new KpiimportexcelDto
+                {
+                    Id = int.TryParse(GetCellString(row.GetCell(0)), out var orgId) ? orgId : 0,
+                    Company = GetCellString(row.GetCell(1)),
+                    ProductionSite = row.GetCell(2)?.ToString()?.Trim(),
+                    Field = GetCellString(row.GetCell(3)),
+                    Category = GetCellString(row.GetCell(4)),
+                    IndicatorName = GetCellString(row.GetCell(6)),
+                    DetailItemName = GetCellString(row.GetCell(7)),
+                    Unit = GetCellString(row.GetCell(8)),
+                    IsApplied = GetCellString(row.GetCell(9)) == "是",
+                    BaselineYear = GetCellString(row.GetCell(10)),
+                    BaselineValue = GetCellDecimal(row.GetCell(11)),
+                    Reports = new List<KpiReportDto>
+                    {
+                        new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(12))},
+                        new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
+                        new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))}
+                    },
+                    TargetValue = GetCellDecimal(row.GetCell(15)),
+                    ComparisonOperator = GetCellString(row.GetCell(16)),
+                    Remarks = GetCellString(row.GetCell(17)),
+                    NewBaselineYear = GetCellString(row.GetCell(18)),
+                    NewBaselineValue = GetCellDecimal(row.GetCell(19)),
+                    NewExecutionValue = GetCellDecimal(row.GetCell(20)),
+                    NewTargetValue = GetCellDecimal(row.GetCell(21)),
+                    NewRemarks = GetCellString(row.GetCell(22)),
+                };
+
+                result.Add(data);
+            }
+            catch (Exception ex)
+            {
+                // 可加 log 記錄錯誤行
+                Console.WriteLine($"Row {rowIndex} 發生錯誤：{ex.Message}");
+            }
+        }
+
+        return result;
+    }
     
+    public async Task<(bool Success, string Message)> BatchFullKpiDataAsync(List<KpiimportexcelDto> rows)
+    {
+        if (rows == null || rows.Count == 0)
+            return (false, "沒有任何資料可匯入。");
+
+        using var transaction = await _db.Database.BeginTransactionAsync();
+        var now = DateTime.UtcNow;
+        var userEmail = "idsl5397@mail.isha.org.tw";
+        var currentYear = 113;
+
+        int successCount = 0;
+        int failCount = 0;
+        List<string> failDetails = new();
+
+        var allFieldsList = await _db.KpiFields.ToListAsync();
+        var allOrganizations = await _db.Organizations.ToDictionaryAsync(o => o.Id);
+        var allFields = allFieldsList
+            .SelectMany(f => new[]
+            {
+                new { Key = f.field?.Trim().ToLower(), Value = f },
+                new { Key = f.enfield?.Trim().ToLower(), Value = f }
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key))
+            .ToDictionary(x => x.Key, x => x.Value);
+        var allKpiItems = await _db.KpiItems.Include(i => i.KpiItemNames).ToListAsync();
+        var allDetailItems = await _db.KpiDetailItems.Include(d => d.KpiDetailItemNames).ToListAsync();
+
+        try
+        {
+            foreach (var row in rows)
+            {
+                try
+                {
+                    if (!allOrganizations.TryGetValue(row.Id, out var organization))
+                        throw new Exception($"找不到公司：{row.Id}");
+
+                    if (!allFields.TryGetValue(row.Field?.Trim().ToLower(), out var field))
+                        throw new Exception($"找不到領域：{row.Field}");
+
+                    int categoryId = (row.Category == "客製" || row.Category == "客製型") ? 1 : 0;
+
+                    var item = allKpiItems.FirstOrDefault(i =>
+                        i.KpiFieldId == field.Id &&
+                        i.KpiCategoryId == categoryId &&
+                        i.OrganizationId == (categoryId == 1 ? organization.Id : null) &&
+                        i.KpiItemNames.Any(n => n.Name == row.IndicatorName && n.StartYear == currentYear));
+
+                    if (item == null)
+                    {
+                        var maxNumber = allKpiItems
+                            .Where(i => i.KpiFieldId == field.Id &&
+                                        i.KpiCategoryId == categoryId &&
+                                        i.OrganizationId == (categoryId == 1 ? organization.Id : null))
+                            .Max(i => (int?)i.IndicatorNumber) ?? 0;
+
+                        item = new KpiItem
+                        {
+                            IndicatorNumber = maxNumber + 1,
+                            KpiFieldId = field.Id,
+                            KpiCategoryId = categoryId,
+                            OrganizationId = (categoryId == 1 ? organization.Id : null),
+                            CreateTime = now,
+                            UploadTime = now,
+                            KpiItemNames = new List<KpiItemName>
+                            {
+                                new KpiItemName
+                                {
+                                    Name = row.IndicatorName,
+                                    StartYear = currentYear,
+                                    UserEmail = userEmail,
+                                    CreatedAt = now
+                                }
+                            }
+                        };
+                        _db.KpiItems.Add(item);
+                        await _db.SaveChangesAsync();
+                        allKpiItems.Add(item);
+                    }
+
+                    var detailItem = allDetailItems.FirstOrDefault(d =>
+                        d.KpiItemId == item.Id &&
+                        d.Unit == row.Unit &&
+                        d.KpiDetailItemNames.Any(n => n.Name == row.DetailItemName && n.StartYear == currentYear));
+
+                    if (detailItem == null)
+                    {
+                        detailItem = new KpiDetailItem
+                        {
+                            KpiItemId = item.Id,
+                            Unit = row.Unit,
+                            ComparisonOperator = row.ComparisonOperator,
+                            CreateTime = now,
+                            UploadTime = now,
+                            KpiDetailItemNames = new List<KpiDetailItemName>
+                            {
+                                new KpiDetailItemName
+                                {
+                                    Name = row.DetailItemName,
+                                    StartYear = currentYear,
+                                    UserEmail = userEmail,
+                                    CreatedAt = now
+                                }
+                            }
+                        };
+                        _db.KpiDetailItems.Add(detailItem);
+                        await _db.SaveChangesAsync();
+                        allDetailItems.Add(detailItem);
+                    }
+
+                    // 6. 確認是否已經存在相同的 KPI Data
+                    bool existsData = await _db.KpiDatas.AnyAsync(d =>
+                        d.OrganizationId == organization.Id &&
+                        d.DetailItemId == detailItem.Id &&
+                        d.ProductionSite == row.ProductionSite);
+
+                    if (existsData)
+                    {
+                        failCount++;
+                        failDetails.Add($"已有資料：{row.Id} / {row.IndicatorName} / {row.DetailItemName}");
+                        continue;
+                    }
+                    
+                    // 舊週期 KpiData
+                    var kpiData = new KpiData
+                    {
+                        OrganizationId = organization.Id,
+                        ProductionSite = row.ProductionSite,
+                        DetailItemId = detailItem.Id,
+                        IsApplied = row.IsApplied,
+                        BaselineYear = row.BaselineYear,
+                        BaselineValue = row.BaselineValue,
+                        TargetValue = row.TargetValue,
+                        Remarks = row.Remarks,
+                        CreatedAt = now,
+                        UpdateAt = now,
+                        KpiCycleId = 1
+                    };
+                    _db.KpiDatas.Add(kpiData);
+                    await _db.SaveChangesAsync();
+
+                    if (row.Reports != null)
+                    {
+                        foreach (var report in row.Reports)
+                        {
+                            decimal? value = null;
+                            try { if (report?.KpiReportValue != null) value = Convert.ToDecimal(report.KpiReportValue); } catch { value = null; }
+
+                            _db.KpiReports.Add(new KpiReport
+                            {
+                                KpiDataId = kpiData.Id,
+                                Year = report?.Year ?? currentYear,
+                                Period = report?.Period ?? "Y",
+                                KpiReportValue = value,
+                                CreatedAt = now,
+                                UpdateAt = now,
+                                Status = ReportStatus.Finalized,
+                                IsSkipped = false,
+                            });
+                        }
+                    }
+
+                    
+                    // 新週期 KpiData（若有提供）
+                    if (!string.IsNullOrWhiteSpace(row.NewBaselineYear))
+                    {
+                        var kpiData2 = new KpiData
+                        {
+                            OrganizationId = organization.Id,
+                            ProductionSite = row.ProductionSite,
+                            DetailItemId = detailItem.Id,
+                            IsApplied = row.IsApplied,
+                            BaselineYear = row.NewBaselineYear,
+                            BaselineValue = row.NewBaselineValue ?? 0,
+                            TargetValue = row.NewTargetValue ?? 0,
+                            Remarks = row.NewRemarks,
+                            CreatedAt = now,
+                            UpdateAt = now,
+                            KpiCycleId = 2
+                        };
+                        _db.KpiDatas.Add(kpiData2);
+                        await _db.SaveChangesAsync();
+
+                        if (row.NewExecutionValue.HasValue)
+                        {
+                            _db.KpiReports.Add(new KpiReport
+                            {
+                                KpiDataId = kpiData2.Id,
+                                Year = 114,
+                                Period = "Q2",
+                                KpiReportValue = row.NewExecutionValue.Value,
+                                CreatedAt = now,
+                                UpdateAt = now,
+                                Status = ReportStatus.Finalized,
+                                IsSkipped = false
+                            });
+                        }
+                    }
+
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    failDetails.Add(ex.Message);
+                }
+
+                if ((successCount + failCount) % 50 == 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (true, $"✅ 匯入完成，成功：{successCount} 筆，失敗：{failCount} 筆\n{string.Join("\n", failDetails)}");
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return (false, $"❌ 匯入失敗，原因：{innerMessage}");
+        }
+    }
+
+    public async Task<List<KpiCycle>> GetAllCyclesAsync()
+    {
+        return await _db.KpiCycles
+            .OrderByDescending(k => k.StartYear)
+            .Select(k => new KpiCycle
+            {
+                Id = k.Id,
+                CycleName = k.CycleName,
+                StartYear = k.StartYear,
+                EndYear = k.EndYear
+            })
+            .ToListAsync();
+    }
 }

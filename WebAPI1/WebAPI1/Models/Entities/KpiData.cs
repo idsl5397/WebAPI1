@@ -10,20 +10,32 @@ public class KpiData
     [Key]
     public int Id { get; set; }
     
+    /// <summary>
+    /// 導覽屬性：是否啟用
+    /// </summary>
     public bool IsApplied { get; set; }
     
-    //基線值數據年份
+    /// <summary>
+    /// 導覽屬性：基線值數據年份
+    /// </summary>
     [StringLength(20)]
     public string BaselineYear { get; set; }
     
-    //基線值
+    /// <summary>
+    /// 導覽屬性：基線值
+    /// </summary>
     [Column(TypeName = "decimal(18, 4)")]
     public decimal? BaselineValue { get; set; }
 
-    //目標值
+    /// <summary>
+    /// 導覽屬性：目標
+    /// </summary>
     [Column(TypeName = "decimal(18, 4)")]
     public decimal? TargetValue { get; set; }
 
+    /// <summary>
+    /// 導覽屬性：備註
+    /// </summary>
     [Column(TypeName = "nvarchar(max)")]
     public string? Remarks { get; set; }
 
@@ -33,6 +45,9 @@ public class KpiData
 
     [ForeignKey("DetailItemId")]
     public virtual KpiDetailItem DetailItem { get; set; }
+    
+    public int? KpiCycleId { get; set; }
+    public virtual KpiCycle KpiCycle { get; set; }
         
     public int? OrganizationId { get; set; }
     [ForeignKey("OrganizationId")]
@@ -40,7 +55,9 @@ public class KpiData
     
     public virtual ICollection<KpiReport> KpiReports { get; set; } = new List<KpiReport>();
     
-    //工廠/製程廠
+    /// <summary>
+    /// 導覽屬性：工場/製程區
+    /// </summary>
     public string? ProductionSite { get; set; }
     public DateTime? CreatedAt { get; set; }
 

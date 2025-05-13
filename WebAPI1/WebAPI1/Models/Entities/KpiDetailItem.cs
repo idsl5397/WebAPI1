@@ -12,10 +12,15 @@ public class KpiDetailItem
     [ForeignKey("KpiItemId")]
     public virtual KpiItem KpiItem { get; set; }
     
-    
+    /// <summary>
+    /// 導覽屬性：單位
+    /// </summary>
     [StringLength(50)]
     public string Unit { get; set; }
     
+    /// <summary>
+    /// 導覽屬性：公式
+    /// </summary>
     [StringLength(3)]
     public string? ComparisonOperator { get; set; }
     

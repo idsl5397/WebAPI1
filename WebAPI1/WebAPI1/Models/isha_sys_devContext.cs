@@ -35,6 +35,7 @@ public partial class isha_sys_devContext : DbContext
     
     public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
     public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
+    public virtual DbSet<KpiCycle> KpiCycles { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -271,6 +272,10 @@ public partial class isha_sys_devContext : DbContext
             entity.HasOne(d => d.Organization)
                 .WithMany()
                 .HasForeignKey(d => d.OrganizationId);
+            
+            entity.HasOne(d => d.KpiCycle)
+                .WithMany(c => c.KpiDatas)
+                .HasForeignKey(d => d.KpiCycleId);
         });
 
         // KpiReport 關聯

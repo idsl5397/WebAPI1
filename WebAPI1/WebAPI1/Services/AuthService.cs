@@ -35,7 +35,7 @@ public class AuthService: IAuthService
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(30), // ⏱ 建議 AccessToken 有效期短
+            expires: DateTime.UtcNow.AddMinutes(300), // ⏱ 建議 AccessToken 有效期短
             signingCredentials: creds
         );
 

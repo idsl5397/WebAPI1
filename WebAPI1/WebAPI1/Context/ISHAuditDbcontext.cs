@@ -37,6 +37,7 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<UserPasswordHistory> UserRPasswordHistories { get; set; }
     public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
     public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
+    public virtual DbSet<KpiCycle> KpiCycles { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -287,6 +288,10 @@ public partial class ISHAuditDbcontext : DbContext
             entity.HasOne(d => d.Organization)
                 .WithMany()
                 .HasForeignKey(d => d.OrganizationId);
+            
+            entity.HasOne(d => d.KpiCycle)
+                .WithMany(c => c.KpiDatas)
+                .HasForeignKey(d => d.KpiCycleId);
         });
 
         // KpiReport 關聯

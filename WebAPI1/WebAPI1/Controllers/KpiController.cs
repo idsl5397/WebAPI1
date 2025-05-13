@@ -60,8 +60,41 @@ public class KpiController: ControllerBase
         var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear);
         return Ok(new { success = true, data = result });
     }
-    
-    
+    [HttpGet("displayPage")]
+    public async Task<IActionResult> GetKpiDisplayPagedAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? organizationId = null,
+        [FromQuery] string? categoryName = null,
+        [FromQuery] string? fieldName = null)
+    {
+        try
+        {
+            var result = await _kpiService.GetKpiDisplayPagedAsync(
+                page: page,
+                pageSize: pageSize,
+                organizationId: organizationId,
+                categoryName: categoryName,
+                fieldName: fieldName
+            );
+
+            return Ok(new
+            {
+                success = true,
+                data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "查詢發生錯誤",
+                detail = ex.Message
+            });
+        }
+    }
+ 
     [HttpGet("kpidata-for-report")]
     public async Task<IActionResult> GetKpiDataDtoByOrganizationIdAsync(int organizationId)
     {
@@ -82,6 +115,19 @@ public class KpiController: ControllerBase
             success = result.Success,
             message = result.Message
         });
+    }
+    [HttpPost("save-kpi-report")]
+    public async Task<IActionResult> SaveDraft([FromBody] List<KpiReportInsertDto> reports)
+    {
+        var (success, message) = await _kpiService.SaveDraftReportsAsync(reports);
+        return Ok(new { success, message });
+    }
+    
+    [HttpGet("load-kpi-draft")]
+    public async Task<IActionResult> LoadKpiDraft(int organizationId, int year, string quarter)
+    {
+        var result = await _kpiService.LoadDraftReportsAsync(organizationId, year, quarter);
+        return Ok(new { success = true, data = result });
     }
     
     // 上傳Excel並預覽前五筆
@@ -107,6 +153,49 @@ public class KpiController: ControllerBase
         }
 
         var (success, message) = await _kpiService.BatchInsertKpiDataAsync(rows);
+
+        if (success)
+        {
+            return Ok(new
+            {
+                success = true,
+                message
+            });
+        }
+        else
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message
+            });
+        }
+    }
+    
+    
+    // 系統管理員上傳Excel並預覽前五筆
+    [HttpPost("full-import-preview")]
+    public async Task<IActionResult> ParseFullImportExcel([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("請上傳檔案。");
+
+        var previewData = _kpiService.ParseFullImportExcel(file.OpenReadStream());
+        return Ok(previewData);
+    }
+    
+    /// <summary>
+    /// 系統管理員批次匯入KPI資料
+    /// </summary>
+    [HttpPost("full-import-confirm")]
+    public async Task<IActionResult> BatchFullKpiDataAsync([FromBody] List<KpiimportexcelDto> rows)
+    {
+        if (rows == null || rows.Count == 0)
+        {
+            return BadRequest("匯入資料為空！");
+        }
+
+        var (success, message) = await _kpiService.BatchFullKpiDataAsync(rows);
 
         if (success)
         {
@@ -161,5 +250,12 @@ public class KpiController: ControllerBase
             .ToListAsync();
 
         return Ok(reports);
+    }
+    
+    [HttpGet("kpiCycle-list")]
+    public async Task<IActionResult> GetCycleOptions()
+    {
+        var cycles = await _kpiService.GetAllCyclesAsync();
+        return Ok(cycles);
     }
 }

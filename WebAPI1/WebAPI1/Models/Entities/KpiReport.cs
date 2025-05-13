@@ -38,7 +38,7 @@ public class KpiReport
     
     public bool IsSkipped { get; set; } = false;
     
-    public string Remarks { get; set; }
+    public string? Remarks { get; set; }
     
     [Column(TypeName = "tinyint")]
     public ReportStatus Status { get; set; }

@@ -7,15 +7,24 @@ public class KpiItem
 {
     [Key]
     public int Id { get; set; }
-    //指標編號
+    
+    /// <summary>
+    /// 導覽屬性：指標編號
+    /// </summary>
     public int IndicatorNumber { get; set; }
     
-    //指標型客制型
+    /// <summary>
+    /// 導覽屬性：基礎型(0)客制型(1)，麥寮台塑獨立一個(2)
+    /// </summary>
     public int KpiCategoryId { get; set; }
-    //指標領域
+    
+    /// <summary>
+    /// 導覽屬性：指標領域
+    /// </summary>
     public int KpiFieldId { get; set; }
     [ForeignKey("KpiFieldId")]
     public virtual KpiField KpiField { get; set; }
+    
     //有客制型就有組織id
     public int? OrganizationId { get; set; }
     
