@@ -6,6 +6,49 @@ using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
+public class KpiDisplayGroupedDto
+{
+    public int Id { get; set; }
+    public string Company { get; set; }
+    public string? ProductionSite { get; set; }
+    public string Category { get; set; }
+    public string Field { get; set; }
+    public int IndicatorNumber { get; set; }
+    public int DetailItemId { get; set; }
+    public string IndicatorName { get; set; }
+    public string DetailItemName { get; set; }
+    public string Unit { get; set; }
+    
+    // 新增：最新一筆 KpiData 資訊
+    public string? LastKpiCycleName { get; set; }
+    public string? LastBaselineYear { get; set; }
+    public decimal? LastBaselineValue { get; set; }
+    public decimal? LastTargetValue { get; set; }
+    public string? LastComparisonOperator { get; set; }
+    public string? LastRemarks { get; set; }
+
+    // 新增：該 KpiData 中最新的執行狀況
+    public int? LastReportYear { get; set; }
+    public string? LastReportPeriod { get; set; }
+    public decimal? LastReportValue { get; set; }
+    public List<KpiDataCycleDto> KpiDatas { get; set; }
+}
+
+public class KpiDataCycleDto
+{
+    public int KpiDataId { get; set; }
+    public string OrganizationName { get; set; }
+    public string KpiCycleName { get; set; }
+    public string BaselineYear { get; set; }
+    public int KpiCycleStartYear { get; set; }
+    public int KpiCycleEndYear { get; set; }
+    public decimal? BaselineValue { get; set; }
+    public string ComparisonOperator { get; set; }
+    public decimal? TargetValue { get; set; }
+    public string? Remarks { get; set; }
+    public List<KpiReportDto> Reports { get; set; }
+}
+
 public class KpiReportInsertDto
 {
     public int KpiDataId { get; set; }
@@ -99,6 +142,10 @@ public class KpiDisplayDto
     public int? LatestReportYear { get; set; }
     public string? LatestReportPeriod { get; set; }
     public decimal? LatestReportValue { get; set; }
+    
+    public string? KpiCycleName { get; set; }
+    public int? KpiCycleStartYear { get; set; }
+    public int? KpiCycleEndYear { get; set; }
     public string? Remarks { get; set; }
     public List<KpiReportDto> Reports { get; set; } = new();
 }
@@ -138,8 +185,10 @@ public interface IKpiService
    
     //匯入單一筆指標資料
     Task<(bool Success, string Message)> InsertKpiData(KpisingleRow row);
-    Task<List<KpiDisplayDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
-    Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId);
+    Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
+    
+    //填寫執行狀況第一步(選擇公司跟年季度)
+    Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year);
     
     //輸入執行狀況送出
     Task<(bool Success, string Message)> SubmitKpiReportsAsync(List<KpiReportInsertDto> reports);
@@ -379,8 +428,122 @@ public class KpiService:IKpiService
         return (true, $"✅ 匯入成功：{row.OrganizationId} / {row.IndicatorName} / {row.DetailItemName}");
     }
     
+    //舊的display
+    // public async Task<List<KpiDisplayDto>> GetKpiDisplayAsync(int? organizationId = null , int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null)
+    // {
+    //     var query = _db.KpiDatas
+    //         .Include(d => d.DetailItem)
+    //             .ThenInclude(di => di.KpiItem)
+    //                 .ThenInclude(i => i.KpiItemNames)
+    //         .Include(d => d.DetailItem.KpiDetailItemNames)
+    //         .Include(d => d.KpiReports)
+    //         .Include(d => d.Organization)
+    //         .Include(d => d.DetailItem.KpiItem.KpiField)
+    //         .Include(d => d.KpiCycle)
+    //         .AsQueryable();
+    //
+    //     if (organizationId.HasValue)
+    //     {
+    //         var orgIds = _organizationService.GetDescendantOrganizationIds(organizationId.Value);
+    //         query = query.Where(d => orgIds.Contains(d.Organization.Id));
+    //     }
+    //
+    //     if (!string.IsNullOrWhiteSpace(categoryName))
+    //     {
+    //         int categoryId = categoryName == "客製型" ? 1 : 0;
+    //         query = query.Where(d => d.DetailItem.KpiItem.KpiCategoryId == categoryId);
+    //     }
+    //
+    //     if (!string.IsNullOrWhiteSpace(fieldName))
+    //         query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
+    //
+    //     // ✅ 關鍵：報表內需至少有一筆符合條件
+    //     if (startYear.HasValue || endYear.HasValue)
+    //     {
+    //         query = query.Where(d => d.KpiReports.Any(r =>
+    //             (!startYear.HasValue || r.Year >= startYear) &&
+    //             (!endYear.HasValue || r.Year <= endYear)
+    //         ));
+    //     }
+    //     
+    //     var result = await query.Select(d => new KpiDisplayDto
+    //     {
+    //         Id = d.Id,
+    //         Company = d.Organization.Name,
+    //         ProductionSite = d.ProductionSite,
+    //         Category = d.DetailItem.KpiItem.KpiCategoryId == 1 ? "客製型" : "基礎型",
+    //         Field = d.DetailItem.KpiItem.KpiField.field,
+    //         IndicatorNumber = d.DetailItem.KpiItem.IndicatorNumber,
+    //         IndicatorName = d.DetailItem.KpiItem.KpiItemNames
+    //             .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
+    //         DetailItemName = d.DetailItem.KpiDetailItemNames
+    //             .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
+    //         Unit = d.DetailItem.Unit,
+    //         IsApplied = d.IsApplied,
+    //         BaselineYear = d.BaselineYear,
+    //         BaselineValue = d.BaselineValue,
+    //         ComparisonOperator = d.DetailItem.ComparisonOperator,
+    //         TargetValue = d.TargetValue,
+    //         KpiCycleName = d.KpiCycle.CycleName,
+    //         KpiCycleStartYear = d.KpiCycle.StartYear,
+    //         KpiCycleEndYear = d.KpiCycle.EndYear,
+    //         Remarks = d.Remarks,
+    //
+    //         // ➕ 新增：最新報表欄位
+    //         LatestReportYear = d.KpiReports
+    //             .OrderByDescending(r => r.Year)
+    //             .ThenByDescending(r => 
+    //                 r.Period == "Y" ? 5 :
+    //                 r.Period == "Q4" ? 4 :
+    //                 r.Period == "Q3" ? 3 :
+    //                 r.Period == "Q2" ? 2 :
+    //                 r.Period == "Q1" ? 1 : 0)
+    //             .Select(r => r.Year)
+    //             .FirstOrDefault(),
+    //
+    //         LatestReportPeriod = d.KpiReports
+    //             .OrderByDescending(r => r.Year)
+    //             .ThenByDescending(r => 
+    //                 r.Period == "Y" ? 5 :
+    //                 r.Period == "Q4" ? 4 :
+    //                 r.Period == "Q3" ? 3 :
+    //                 r.Period == "Q2" ? 2 :
+    //                 r.Period == "Q1" ? 1 : 0)
+    //             .Select(r => r.Period)
+    //             .FirstOrDefault(),
+    //
+    //         LatestReportValue = d.KpiReports
+    //             .OrderByDescending(r => r.Year)
+    //             .ThenByDescending(r => 
+    //                 r.Period == "Y" ? 5 :
+    //                 r.Period == "Q4" ? 4 :
+    //                 r.Period == "Q3" ? 3 :
+    //                 r.Period == "Q2" ? 2 :
+    //                 r.Period == "Q1" ? 1 : 0)
+    //             .Select(r => r.KpiReportValue)
+    //             .FirstOrDefault(),
+    //
+    //         Reports = d.KpiReports
+    //             .Where(r => !startYear.HasValue || r.Year >= startYear)
+    //             .Where(r => !endYear.HasValue || r.Year <= endYear)
+    //             .OrderBy(r => r.Year).ThenBy(r => r.Period)
+    //             .Select(r => new KpiReportDto
+    //             {
+    //                 Year = r.Year,
+    //                 Period = r.Period,
+    //                 KpiReportValue = r.KpiReportValue
+    //             }).ToList()
+    //     }).ToListAsync();
+    //
+    //     return result;
+    // }
     
-    public async Task<List<KpiDisplayDto>> GetKpiDisplayAsync(int? organizationId = null , int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null)
+    public async Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(
+    int? organizationId = null, 
+    int? startYear = null, 
+    int? endYear = null, 
+    string? categoryName = null, 
+    string? fieldName = null)
     {
         var query = _db.KpiDatas
             .Include(d => d.DetailItem)
@@ -388,100 +551,109 @@ public class KpiService:IKpiService
                     .ThenInclude(i => i.KpiItemNames)
             .Include(d => d.DetailItem.KpiDetailItemNames)
             .Include(d => d.KpiReports)
+            .Include(d => d.KpiCycle)
             .Include(d => d.Organization)
             .Include(d => d.DetailItem.KpiItem.KpiField)
             .AsQueryable();
-    
+
+        // 篩選條件
         if (organizationId.HasValue)
         {
             var orgIds = _organizationService.GetDescendantOrganizationIds(organizationId.Value);
             query = query.Where(d => orgIds.Contains(d.Organization.Id));
         }
-    
+
         if (!string.IsNullOrWhiteSpace(categoryName))
         {
             int categoryId = categoryName == "客製型" ? 1 : 0;
             query = query.Where(d => d.DetailItem.KpiItem.KpiCategoryId == categoryId);
         }
-    
+
         if (!string.IsNullOrWhiteSpace(fieldName))
+        {
             query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
-    
-        // ✅ 關鍵：報表內需至少有一筆符合條件
+        }
+
         if (startYear.HasValue || endYear.HasValue)
         {
             query = query.Where(d => d.KpiReports.Any(r =>
                 (!startYear.HasValue || r.Year >= startYear) &&
-                (!endYear.HasValue || r.Year <= endYear)
-            ));
+                (!endYear.HasValue || r.Year <= endYear)));
         }
-        
-        var result = await query.Select(d => new KpiDisplayDto
-        {
-            Id = d.Id,
-            Company = d.Organization.Name,
-            ProductionSite = d.ProductionSite,
-            Category = d.DetailItem.KpiItem.KpiCategoryId == 1 ? "客製型" : "基礎型",
-            Field = d.DetailItem.KpiItem.KpiField.field,
-            IndicatorNumber = d.DetailItem.KpiItem.IndicatorNumber,
-            IndicatorName = d.DetailItem.KpiItem.KpiItemNames
-                .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
-            DetailItemName = d.DetailItem.KpiDetailItemNames
-                .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
-            Unit = d.DetailItem.Unit,
-            IsApplied = d.IsApplied,
-            BaselineYear = d.BaselineYear,
-            BaselineValue = d.BaselineValue,
-            ComparisonOperator = d.DetailItem.ComparisonOperator,
-            TargetValue = d.TargetValue,
-            Remarks = d.Remarks,
 
-            // ➕ 新增：最新報表欄位
-            LatestReportYear = d.KpiReports
-                .OrderByDescending(r => r.Year)
-                .ThenByDescending(r => 
-                    r.Period == "Y" ? 5 :
-                    r.Period == "Q4" ? 4 :
-                    r.Period == "Q3" ? 3 :
-                    r.Period == "Q2" ? 2 :
-                    r.Period == "Q1" ? 1 : 0)
-                .Select(r => r.Year)
-                .FirstOrDefault(),
+        // Tree 結構輸出
+        var rawData = await query.ToListAsync();
 
-            LatestReportPeriod = d.KpiReports
-                .OrderByDescending(r => r.Year)
-                .ThenByDescending(r => 
-                    r.Period == "Y" ? 5 :
-                    r.Period == "Q4" ? 4 :
-                    r.Period == "Q3" ? 3 :
-                    r.Period == "Q2" ? 2 :
-                    r.Period == "Q1" ? 1 : 0)
-                .Select(r => r.Period)
-                .FirstOrDefault(),
+        var result = rawData
+            .GroupBy(d => new { d.DetailItemId, d.OrganizationId, d.ProductionSite })
+            .Select(g =>
+            {
+                var latestKpiData = g
+                    .OrderByDescending(d => d.KpiCycle.StartYear)
+                    .FirstOrDefault();
 
-            LatestReportValue = d.KpiReports
-                .OrderByDescending(r => r.Year)
-                .ThenByDescending(r => 
-                    r.Period == "Y" ? 5 :
-                    r.Period == "Q4" ? 4 :
-                    r.Period == "Q3" ? 3 :
-                    r.Period == "Q2" ? 2 :
-                    r.Period == "Q1" ? 1 : 0)
-                .Select(r => r.KpiReportValue)
-                .FirstOrDefault(),
+                var latestReport = latestKpiData?.KpiReports
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r =>
+                        r.Period == "Y" ? 5 :
+                        r.Period == "Q4" ? 4 :
+                        r.Period == "Q3" ? 3 :
+                        r.Period == "Q2" ? 2 :
+                        r.Period == "Q1" ? 1 : 0)
+                    .FirstOrDefault();
 
-            Reports = d.KpiReports
-                .Where(r => !startYear.HasValue || r.Year >= startYear)
-                .Where(r => !endYear.HasValue || r.Year <= endYear)
-                .OrderBy(r => r.Year).ThenBy(r => r.Period)
-                .Select(r => new KpiReportDto
+                return new KpiDisplayGroupedDto
                 {
-                    Year = r.Year,
-                    Period = r.Period,
-                    KpiReportValue = r.KpiReportValue
-                }).ToList()
-        }).ToListAsync();
-    
+                    DetailItemId = g.Key.DetailItemId,
+                    ProductionSite = g.Key.ProductionSite,
+                    
+                    Company = latestKpiData?.Organization?.Name,
+                    Category = latestKpiData?.DetailItem?.KpiItem?.KpiCategoryId == 1 ? "客製型" : "基礎型",
+                    Field = latestKpiData?.DetailItem?.KpiItem?.KpiField?.field,
+                    IndicatorName = g.First().DetailItem.KpiItem.KpiItemNames
+                        .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+                    DetailItemName = g.First().DetailItem.KpiDetailItemNames
+                        .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+                    Unit = g.First().DetailItem.Unit,
+
+                    // ✅ 加上 Last KPI Data 與 Report 資訊
+                    LastKpiCycleName = latestKpiData?.KpiCycle.CycleName,
+                    LastBaselineYear = latestKpiData?.BaselineYear,
+                    LastBaselineValue = latestKpiData?.BaselineValue,
+                    LastTargetValue = latestKpiData?.TargetValue,
+                    LastComparisonOperator = latestKpiData?.DetailItem?.ComparisonOperator,
+                    LastRemarks = latestKpiData?.Remarks,
+                    LastReportYear = latestReport?.Year,
+                    LastReportPeriod = latestReport?.Period,
+                    LastReportValue = latestReport?.KpiReportValue,
+
+                    KpiDatas = g.Select(d => new KpiDataCycleDto
+                    {
+                        KpiDataId = d.Id,
+                        OrganizationName = d.Organization.Name,
+                        KpiCycleName = d.KpiCycle.CycleName,
+                        KpiCycleStartYear = d.KpiCycle.StartYear,
+                        KpiCycleEndYear = d.KpiCycle.EndYear,
+                        BaselineYear = d.BaselineYear,
+                        BaselineValue = d.BaselineValue,
+                        ComparisonOperator = d.DetailItem.ComparisonOperator,
+                        TargetValue = d.TargetValue,
+                        Remarks = d.Remarks,
+                        Reports = d.KpiReports
+                            .Where(r => (!startYear.HasValue || r.Year >= startYear) &&
+                                        (!endYear.HasValue || r.Year <= endYear))
+                            .OrderBy(r => r.Year)
+                            .ThenBy(r => r.Period)
+                            .Select(r => new KpiReportDto
+                            {
+                                Year = r.Year,
+                                Period = r.Period,
+                                KpiReportValue = r.KpiReportValue
+                            }).ToList()
+                    }).ToList()
+                };
+            }).ToList();
+
         return result;
     }
     
@@ -559,7 +731,7 @@ public class KpiService:IKpiService
         };
     }
     
-    public async Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId)
+    public async Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year)
     {
         var result = await _db.KpiDatas
             .Include(d => d.DetailItem)
@@ -569,7 +741,10 @@ public class KpiService:IKpiService
             .Include(d => d.Organization)
             .Include(d => d.DetailItem.KpiItem.KpiField)
             .Include(d => d.KpiReports)
-            .Where(d => d.Organization.Id == organizationId)
+            .Include(d => d.KpiCycle) // ✅ 一定要加上這個
+            .Where(d => d.Organization.Id == organizationId &&
+                        d.KpiCycle.StartYear <= year &&
+                        d.KpiCycle.EndYear >= year)
             .Select(d => new KpiDataDto
             {
                 KpiDataId = d.Id,

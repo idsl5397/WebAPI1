@@ -96,9 +96,9 @@ public class KpiController: ControllerBase
     }
  
     [HttpGet("kpidata-for-report")]
-    public async Task<IActionResult> GetKpiDataDtoByOrganizationIdAsync(int organizationId)
+    public async Task<IActionResult> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year)
     {
-        var kpiDataList = await _kpiService.GetKpiDataDtoByOrganizationIdAsync(organizationId);
+        var kpiDataList = await _kpiService.GetKpiDataDtoByOrganizationIdAsync(organizationId, year);
     
         if (kpiDataList.Count == 0)
             return Ok(new { success = false, message = "該單位目前無 KPI 可填報", data = new List<KpiDataDto>() });
