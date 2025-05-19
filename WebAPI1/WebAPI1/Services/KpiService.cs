@@ -78,6 +78,8 @@ public class KpiDataDto
     public string BaselineYear { get; set; }
     public decimal? BaselineValue { get; set; }
     public decimal? TargetValue { get; set; }
+    public int? Status { get; set; }
+    
 }
 
 public class KpisingleRow
@@ -109,6 +111,7 @@ public class KpimanyRow
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
     public bool IsApplied { get; set; }
+    public string KpiCycleName { get; set; }
     public string BaselineYear { get; set; }
     public decimal? BaselineValue { get; set; }
     public string? ComparisonOperator { get; set; }
@@ -185,10 +188,8 @@ public interface IKpiService
    
     //匯入單一筆指標資料
     Task<(bool Success, string Message)> InsertKpiData(KpisingleRow row);
-    Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
-    
     //填寫執行狀況第一步(選擇公司跟年季度)
-    Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year);
+    Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year, string quarter);
     
     //輸入執行狀況送出
     Task<(bool Success, string Message)> SubmitKpiReportsAsync(List<KpiReportInsertDto> reports);
@@ -196,7 +197,8 @@ public interface IKpiService
     Task<(bool Success, string Message)> SaveDraftReportsAsync(List<KpiReportInsertDto> reports);
     //顯示暫存資料
     Task<List<KpiReportInsertDto>> LoadDraftReportsAsync(int organizationId, int year, string quarter);
-
+    //績效指標顯示功能
+    Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
     //想做延遲分頁顯示功能但未完成
     Task<KpiService.PagedResult<KpiDisplayDto>> GetKpiDisplayPagedAsync(
         int page = 1,
@@ -399,7 +401,7 @@ public class KpiService:IKpiService
             d.OrganizationId == organization.Id &&
             d.DetailItemId == detailItem.Id &&
             d.ProductionSite == row.ProductionSite &&
-            d.BaselineYear == row.BaselineYear);
+            d.KpiCycleId == row.KpiCycleId);
 
         if (existsData)
         {
@@ -593,6 +595,7 @@ public class KpiService:IKpiService
                     .FirstOrDefault();
 
                 var latestReport = latestKpiData?.KpiReports
+                    .Where(r => r.Status == (ReportStatus)4)
                     .OrderByDescending(r => r.Year)
                     .ThenByDescending(r =>
                         r.Period == "Y" ? 5 :
@@ -640,7 +643,8 @@ public class KpiService:IKpiService
                         TargetValue = d.TargetValue,
                         Remarks = d.Remarks,
                         Reports = d.KpiReports
-                            .Where(r => (!startYear.HasValue || r.Year >= startYear) &&
+                            .Where(r => r.Status == (ReportStatus)4 &&
+                                        (!startYear.HasValue || r.Year >= startYear) &&
                                         (!endYear.HasValue || r.Year <= endYear))
                             .OrderBy(r => r.Year)
                             .ThenBy(r => r.Period)
@@ -731,7 +735,7 @@ public class KpiService:IKpiService
         };
     }
     
-    public async Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year)
+    public async Task<List<KpiDataDto>> GetKpiDataDtoByOrganizationIdAsync(int organizationId, int year, string quarter)
     {
         var result = await _db.KpiDatas
             .Include(d => d.DetailItem)
@@ -741,10 +745,16 @@ public class KpiService:IKpiService
             .Include(d => d.Organization)
             .Include(d => d.DetailItem.KpiItem.KpiField)
             .Include(d => d.KpiReports)
-            .Include(d => d.KpiCycle) // ✅ 一定要加上這個
-            .Where(d => d.Organization.Id == organizationId &&
-                        d.KpiCycle.StartYear <= year &&
-                        d.KpiCycle.EndYear >= year)
+            .Include(d => d.KpiCycle)
+            .Where(d =>
+                    d.Organization.Id == organizationId &&
+                    d.KpiCycle.StartYear <= year &&
+                    d.KpiCycle.EndYear >= year &&
+                    !d.KpiReports.Any(r =>
+                        r.Year == year &&
+                        r.Period == quarter &&
+                        r.Status == (ReportStatus)4) // ✅ 只要這筆 KPI 有定案報告就排除
+            )
             .Select(d => new KpiDataDto
             {
                 KpiDataId = d.Id,
@@ -762,7 +772,14 @@ public class KpiService:IKpiService
                 Unit = d.DetailItem.Unit,
                 BaselineYear = d.BaselineYear,
                 BaselineValue = d.BaselineValue,
-                TargetValue = d.TargetValue
+                TargetValue = d.TargetValue,
+                // ✅ 補上目前該年該季的報告狀態（若有的話）
+                Status = d.KpiReports
+                    .Where(r => r.Year == year && r.Period == quarter)
+                    .OrderByDescending(r => r.UpdateAt) // 若有更新時間
+                    .Select(r => (int?)r.Status)         // 改為 nullable
+                    .FirstOrDefault() ?? -1              // 若無資料時，明確標示為 -1
+
             })
             .ToListAsync();
 
@@ -954,11 +971,12 @@ public class KpiService:IKpiService
                 DetailItemName = GetCellString(row.GetCell(7)),
                 Unit = GetCellString(row.GetCell(8)),
                 IsApplied = GetCellString(row.GetCell(9)) == "是",
-                BaselineYear = GetCellString(row.GetCell(10)),
-                BaselineValue = GetCellDecimal(row.GetCell(11)),
-                ComparisonOperator = GetCellString(row.GetCell(12)),
-                TargetValue = GetCellDecimal(row.GetCell(13)),
-                Remarks = GetCellString(row.GetCell(14))
+                KpiCycleName = GetCellString(row.GetCell(10)),
+                BaselineYear = GetCellString(row.GetCell(11)),
+                BaselineValue = GetCellDecimal(row.GetCell(12)),
+                ComparisonOperator = GetCellString(row.GetCell(13)),
+                TargetValue = GetCellDecimal(row.GetCell(14)),
+                Remarks = GetCellString(row.GetCell(15))
             };
 
             result.Add(dto);
@@ -985,6 +1003,7 @@ public class KpiService:IKpiService
         var allFieldsList = await _db.KpiFields.ToListAsync();
         
         // 一次查好基礎資料，放到記憶體Dictionary加速
+        var allKpiCycles = await _db.KpiCycles.ToListAsync();
         var allOrganizations = await _db.Organizations.ToDictionaryAsync(o => o.Id);
         var allFields = allFieldsList
             .SelectMany(f => new[]
@@ -1096,11 +1115,17 @@ public class KpiService:IKpiService
                         allDetailItems.Add(detailItem);
                     }
 
+                    // 比對 KpiCycleName，找出對應 ID
+                    var kpiCycle = allKpiCycles.FirstOrDefault(c => c.CycleName == row.KpiCycleName?.Trim());
+                    if (kpiCycle == null)
+                        throw new Exception($"找不到對應的 KpiCycle 名稱：{row.KpiCycleName}");
+                    
                     // 6. 確認是否已經存在相同的 KPI Data
                     bool existsData = await _db.KpiDatas.AnyAsync(d =>
                         d.OrganizationId == organization.Id &&
                         d.DetailItemId == detailItem.Id &&
-                        d.ProductionSite == row.ProductionSite);
+                        d.ProductionSite == row.ProductionSite &&
+                        d.KpiCycleId == kpiCycle.Id);
 
                     if (existsData)
                     {
@@ -1109,6 +1134,7 @@ public class KpiService:IKpiService
                         continue;
                     }
 
+                    
                     // 7. 新增KpiData
                     _db.KpiDatas.Add(new KpiData
                     {
@@ -1122,7 +1148,7 @@ public class KpiService:IKpiService
                         Remarks = row.Remarks,
                         CreatedAt = now,
                         UpdateAt = now,
-                        KpiCycleId = 2
+                        KpiCycleId = kpiCycle.Id
                     });
 
                     successCount++;
@@ -1246,7 +1272,11 @@ public class KpiService:IKpiService
 
                     if (!allFields.TryGetValue(row.Field?.Trim().ToLower(), out var field))
                         throw new Exception($"找不到領域：{row.Field}");
-
+                    
+                    var productionSite = string.IsNullOrWhiteSpace(row.ProductionSite) || row.ProductionSite.Trim() == "-" 
+                        ? ""
+                        : row.ProductionSite.Trim();
+                    
                     int categoryId = (row.Category == "客製" || row.Category == "客製型") ? 1 : 0;
 
                     var item = allKpiItems.FirstOrDefault(i =>
@@ -1321,7 +1351,7 @@ public class KpiService:IKpiService
                     bool existsData = await _db.KpiDatas.AnyAsync(d =>
                         d.OrganizationId == organization.Id &&
                         d.DetailItemId == detailItem.Id &&
-                        d.ProductionSite == row.ProductionSite);
+                        (d.ProductionSite ?? "") == productionSite);
 
                     if (existsData)
                     {
@@ -1334,7 +1364,7 @@ public class KpiService:IKpiService
                     var kpiData = new KpiData
                     {
                         OrganizationId = organization.Id,
-                        ProductionSite = row.ProductionSite,
+                        ProductionSite = productionSite,
                         DetailItemId = detailItem.Id,
                         IsApplied = row.IsApplied,
                         BaselineYear = row.BaselineYear,
@@ -1376,7 +1406,7 @@ public class KpiService:IKpiService
                         var kpiData2 = new KpiData
                         {
                             OrganizationId = organization.Id,
-                            ProductionSite = row.ProductionSite,
+                            ProductionSite = productionSite,
                             DetailItemId = detailItem.Id,
                             IsApplied = row.IsApplied,
                             BaselineYear = row.NewBaselineYear,
