@@ -402,30 +402,28 @@ public class KpiService:IKpiService
             d.DetailItemId == detailItem.Id &&
             d.ProductionSite == row.ProductionSite &&
             d.KpiCycleId == row.KpiCycleId);
-
+        
         if (existsData)
         {
             return (false, "已存在相同指標資料");
         }
-        else
+        
+        var kpiData = new KpiData
         {
-            var kpiData = new KpiData
-            {
-                OrganizationId = organization.Id,
-                ProductionSite = row.ProductionSite,
-                DetailItemId = detailItem.Id,
-                IsApplied = row.IsApplied,
-                BaselineYear = row.BaselineYear,
-                BaselineValue = row.BaselineValue,
-                TargetValue = row.TargetValue,
-                Remarks = row.Remarks,
-                CreatedAt = now,
-                UpdateAt = now,
-                KpiCycleId = row.KpiCycleId,
-            };
-            _db.KpiDatas.Add(kpiData);
-            await _db.SaveChangesAsync();
-        }
+            OrganizationId = organization.Id,
+            ProductionSite = row.ProductionSite,
+            DetailItemId = detailItem.Id,
+            IsApplied = row.IsApplied,
+            BaselineYear = row.BaselineYear,
+            BaselineValue = row.BaselineValue,
+            TargetValue = row.TargetValue,
+            Remarks = row.Remarks,
+            CreatedAt = now,
+            UpdateAt = now,
+            KpiCycleId = row.KpiCycleId,
+        };
+        _db.KpiDatas.Add(kpiData);
+        await _db.SaveChangesAsync();
         
         return (true, $"✅ 匯入成功：{row.OrganizationId} / {row.IndicatorName} / {row.DetailItemName}");
     }
