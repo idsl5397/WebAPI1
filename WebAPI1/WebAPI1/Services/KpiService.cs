@@ -198,7 +198,8 @@ public interface IKpiService
     //顯示暫存資料
     Task<List<KpiReportInsertDto>> LoadDraftReportsAsync(int organizationId, int year, string quarter);
     //績效指標顯示功能
-    Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? categoryName = null, string? fieldName = null);
+    Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? startQuarter = null,
+        string? endQuarter = null, string? categoryName = null, string? fieldName = null);
     //想做延遲分頁顯示功能但未完成
     Task<KpiService.PagedResult<KpiDisplayDto>> GetKpiDisplayPagedAsync(
         int page = 1,
@@ -539,11 +540,13 @@ public class KpiService:IKpiService
     // }
     
     public async Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(
-    int? organizationId = null, 
-    int? startYear = null, 
-    int? endYear = null, 
-    string? categoryName = null, 
-    string? fieldName = null)
+        int? organizationId = null,
+        int? startYear = null,
+        int? endYear = null,
+        string? startQuarter = null,
+        string? endQuarter = null,
+        string? categoryName = null,
+        string? fieldName = null)
     {
         var query = _db.KpiDatas
             .Include(d => d.DetailItem)
@@ -556,13 +559,14 @@ public class KpiService:IKpiService
             .Include(d => d.DetailItem.KpiItem.KpiField)
             .AsQueryable();
 
-        // 篩選條件
+        // 組織篩選
         if (organizationId.HasValue)
         {
             var orgIds = _organizationService.GetDescendantOrganizationIds(organizationId.Value);
             query = query.Where(d => orgIds.Contains(d.Organization.Id));
         }
 
+        // 分類與領域篩選
         if (!string.IsNullOrWhiteSpace(categoryName))
         {
             int categoryId = categoryName == "客製型" ? 1 : 0;
@@ -574,6 +578,7 @@ public class KpiService:IKpiService
             query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
         }
 
+        // 年度篩選（僅找有報告的）
         if (startYear.HasValue || endYear.HasValue)
         {
             query = query.Where(d => d.KpiReports.Any(r =>
@@ -581,7 +586,17 @@ public class KpiService:IKpiService
                 (!endYear.HasValue || r.Year <= endYear)));
         }
 
-        // Tree 結構輸出
+        // 季度排序轉換函式
+        int QuarterOrder(string q) => q switch
+        {
+            "Q1" => 1,
+            "Q2" => 2,
+            "Q3" => 3,
+            "Q4" => 4,
+            "Y"  => 5,
+            _    => 0
+        };
+
         var rawData = await query.ToListAsync();
 
         var result = rawData
@@ -589,35 +604,39 @@ public class KpiService:IKpiService
             .Select(g =>
             {
                 var latestKpiData = g
+                    .Where(d =>
+                        !endYear.HasValue || d.KpiReports.Any(r =>
+                            r.Year < endYear || 
+                            (r.Year == endYear && (
+                                string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)
+                            ))))
                     .OrderByDescending(d => d.KpiCycle.StartYear)
                     .FirstOrDefault();
 
                 var latestReport = latestKpiData?.KpiReports
-                    .Where(r => r.Status == (ReportStatus)4)
+                    .Where(r =>
+                        r.Status == ReportStatus.Finalized &&
+                        (!endYear.HasValue || r.Year < endYear || 
+                            (r.Year == endYear && (
+                                string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)
+                            )))
+                    )
                     .OrderByDescending(r => r.Year)
-                    .ThenByDescending(r =>
-                        r.Period == "Y" ? 5 :
-                        r.Period == "Q4" ? 4 :
-                        r.Period == "Q3" ? 3 :
-                        r.Period == "Q2" ? 2 :
-                        r.Period == "Q1" ? 1 : 0)
+                    .ThenByDescending(r => QuarterOrder(r.Period))
                     .FirstOrDefault();
 
                 return new KpiDisplayGroupedDto
                 {
                     DetailItemId = g.Key.DetailItemId,
                     ProductionSite = g.Key.ProductionSite,
-                    
+
                     Company = latestKpiData?.Organization?.Name,
                     Category = latestKpiData?.DetailItem?.KpiItem?.KpiCategoryId == 1 ? "客製型" : "基礎型",
                     Field = latestKpiData?.DetailItem?.KpiItem?.KpiField?.field,
-                    IndicatorName = g.First().DetailItem.KpiItem.KpiItemNames
-                        .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
-                    DetailItemName = g.First().DetailItem.KpiDetailItemNames
-                        .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+                    IndicatorName = g.First().DetailItem.KpiItem.KpiItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+                    DetailItemName = g.First().DetailItem.KpiDetailItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
                     Unit = g.First().DetailItem.Unit,
 
-                    // ✅ 加上 Last KPI Data 與 Report 資訊
                     LastKpiCycleName = latestKpiData?.KpiCycle.CycleName,
                     LastBaselineYear = latestKpiData?.BaselineYear,
                     LastBaselineValue = latestKpiData?.BaselineValue,
@@ -641,11 +660,19 @@ public class KpiService:IKpiService
                         TargetValue = d.TargetValue,
                         Remarks = d.Remarks,
                         Reports = d.KpiReports
-                            .Where(r => r.Status == (ReportStatus)4 &&
-                                        (!startYear.HasValue || r.Year >= startYear) &&
-                                        (!endYear.HasValue || r.Year <= endYear))
+                            .Where(r =>
+                                r.Status == ReportStatus.Finalized &&
+                                (!startYear.HasValue || r.Year > startYear || 
+                                    (r.Year == startYear && (
+                                        string.IsNullOrEmpty(startQuarter) || QuarterOrder(r.Period) >= QuarterOrder(startQuarter)
+                                    ))) &&
+                                (!endYear.HasValue || r.Year < endYear || 
+                                    (r.Year == endYear && (
+                                        string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)
+                                    )))
+                            )
                             .OrderBy(r => r.Year)
-                            .ThenBy(r => r.Period)
+                            .ThenBy(r => QuarterOrder(r.Period))
                             .Select(r => new KpiReportDto
                             {
                                 Year = r.Year,
@@ -965,16 +992,16 @@ public class KpiService:IKpiService
                 ProductionSite = GetCellString(row.GetCell(2)),
                 KpiCategoryName = GetCellString(row.GetCell(3)),
                 FieldName = GetCellString(row.GetCell(4)),
-                IndicatorName = GetCellString(row.GetCell(6)),
-                DetailItemName = GetCellString(row.GetCell(7)),
-                Unit = GetCellString(row.GetCell(8)),
-                IsApplied = GetCellString(row.GetCell(9)) == "是",
-                KpiCycleName = GetCellString(row.GetCell(10)),
-                BaselineYear = GetCellString(row.GetCell(11)),
-                BaselineValue = GetCellDecimal(row.GetCell(12)),
-                ComparisonOperator = GetCellString(row.GetCell(13)),
-                TargetValue = GetCellDecimal(row.GetCell(14)),
-                Remarks = GetCellString(row.GetCell(15))
+                IndicatorName = GetCellString(row.GetCell(5)),
+                DetailItemName = GetCellString(row.GetCell(6)),
+                Unit = GetCellString(row.GetCell(7)),
+                IsApplied = GetCellString(row.GetCell(8)) == "是",
+                KpiCycleName = GetCellString(row.GetCell(9)),
+                BaselineYear = GetCellString(row.GetCell(10)),
+                BaselineValue = GetCellDecimal(row.GetCell(11)),
+                ComparisonOperator = GetCellString(row.GetCell(12)),
+                TargetValue = GetCellDecimal(row.GetCell(13)),
+                Remarks = GetCellString(row.GetCell(14))
             };
 
             result.Add(dto);

@@ -55,9 +55,9 @@ public class KpiController: ControllerBase
     
     
     [HttpGet("display")]
-    public async Task<IActionResult> GetKpiDisplayAsync([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear)
+    public async Task<IActionResult> GetKpiDisplayAsync([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear, [FromQuery] string? startquarter, [FromQuery] string? endquarter)
     {
-        var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear);
+        var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear, startquarter, endquarter);
         return Ok(new { success = true, data = result });
     }
     [HttpGet("displayPage")]
