@@ -10,7 +10,11 @@ using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
-
+public class UserDto
+{
+    public Guid Id { get; set; }
+    public string NickName { get; set; }
+}
 public class RegisterUserDto
 {
     public string UserName { get; set; }
@@ -36,6 +40,9 @@ public interface IUserService
 {
     Task<bool> CreateUserAsync(RegisterUserDto dto);
     Task<LoginResultDto> VerifyUserLoginAsync(LoginDto dto);
+    
+    //獲取委員資料名單
+    Task<List<UserDto>> GetCommitteeUsers();
 }
 public class UserService:IUserService
 {
@@ -125,5 +132,22 @@ public class UserService:IUserService
             Nickname = user.Nickname,
             Email = user.Email
         };
+    }
+    
+    public async Task<List<UserDto>> GetCommitteeUsers()
+    {
+        var result = await _db.Users
+            .Include(u => u.Organization) // 明確載入關聯資料
+            .Where(u => u.OrganizationId != null &&
+                        u.Organization != null &&
+                        new[] { 5, 6, 7, 8, 9 }.Contains(u.Organization.TypeId))
+            .Select(u => new UserDto
+            {
+                Id = u.Id,
+                NickName = u.Nickname
+            })
+            .ToListAsync();
+
+        return result;
     }
 }

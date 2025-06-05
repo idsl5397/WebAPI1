@@ -2,6 +2,7 @@
 
 namespace WebAPI1.Entities;
 
+
 public class SuggestEventType
 {
     [Key]

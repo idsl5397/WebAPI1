@@ -41,10 +41,9 @@ public class SuggestData
     
     [Column(TypeName = "tinyint")] // 是否參採
     public IsAdopted IsAdopted { get; set; }
-    
+    public string? IsAdoptedOther { get; set; }
     public string? RespDept { get; set; } //負責部門
     
-    [MaxLength(500)]
     public string? ImproveDetails { get; set; } // 改善對策/辦理情形
     
     public int? Manpower { get; set; } // 投入人力
@@ -54,16 +53,16 @@ public class SuggestData
     [Column(TypeName = "tinyint")] // 是否完成改善
     public IsAdopted Completed { get; set; }
     
+    public string? CompletedOther { get; set; }
     public int? DoneYear { get; set; } // 完成/預計完成日期 西元年份
     public int? DoneMonth { get; set; } // 完成/預計完成日期 月份
     
     [Column(TypeName = "tinyint")] // 是否平行展開
     public IsAdopted ParallelExec { get; set; }
+    public string? ParallelExecOther { get; set; }
     
-    [MaxLength(500)]
     public string? ExecPlan { get; set; } // 平行展開執行規劃
     
-    [MaxLength(500)]
     public string? Remark { get; set; } // 平行展開執行規劃
     
     public DateTime? CreatedAt { get; set; }

@@ -87,6 +87,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISuggestService, SuggestService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 

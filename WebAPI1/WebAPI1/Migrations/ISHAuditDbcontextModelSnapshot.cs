@@ -636,6 +636,9 @@ namespace WebAPI1.Migrations
                     b.Property<byte>("Completed")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("CompletedOther")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -649,15 +652,16 @@ namespace WebAPI1.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ExecPlan")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImproveDetails")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<byte>("IsAdopted")
                         .HasColumnType("tinyint");
+
+                    b.Property<string>("IsAdoptedOther")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("KpiFieldId")
                         .HasColumnType("int");
@@ -671,9 +675,11 @@ namespace WebAPI1.Migrations
                     b.Property<byte>("ParallelExec")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("ParallelExecOther")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Remark")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RespDept")
                         .HasColumnType("nvarchar(max)");
@@ -866,7 +872,6 @@ namespace WebAPI1.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("PasswordLockedUntil")
@@ -901,8 +906,6 @@ namespace WebAPI1.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email");
 
                     b.HasIndex("OrganizationId");
 

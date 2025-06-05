@@ -91,7 +91,7 @@ public class KpisingleRow
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
-    public string ComparisonOperator { get; set; }
+    public string? ComparisonOperator { get; set; }
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal BaselineValue { get; set; }

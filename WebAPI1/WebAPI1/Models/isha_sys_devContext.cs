@@ -20,8 +20,7 @@ public partial class isha_sys_devContext : DbContext
     public virtual DbSet<KpiData> KpiDatas { get; set; }
     public virtual DbSet<KpiReport> KpiReports { get; set; }
     
-    public virtual DbSet<SuggestData> SuggestDatas { get; set; }
-    public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
+    
     public virtual DbSet<DataChangeLog> DataChangeLogs { get; set; }
     public virtual DbSet<Menu> Menus { get; set; }
     public virtual DbSet<MenuRole> MenusRoles { get; set; }
@@ -32,9 +31,11 @@ public partial class isha_sys_devContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
     public virtual DbSet<UserPasswordHistory> UserRPasswordHistories { get; set; }
-    
+    public virtual DbSet<SuggestData> SuggestDatas { get; set; }
+    public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
     public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
     public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
+
     public virtual DbSet<KpiCycle> KpiCycles { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -171,9 +172,7 @@ public partial class isha_sys_devContext : DbContext
 
             // 用戶名唯一索引
             entity.HasIndex(u => new { u.Username, u.Email }).IsUnique();
-            
-            // 電子郵件索引
-            entity.HasIndex(u => u.Email);
+
         });
         
         // UserPasswordHistory表關聯配置

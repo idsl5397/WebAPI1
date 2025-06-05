@@ -23,8 +23,7 @@ public class User
     /// <summary>
     /// 加密後的密碼
     /// </summary>
-    [Required]
-    public string PasswordHash { get; set; }
+    public string? PasswordHash { get; set; }
 
     /// <summary>
     /// 顯示名稱
