@@ -40,7 +40,7 @@ public class SuggestData
     
     
     [Column(TypeName = "tinyint")] // 是否參採
-    public IsAdopted IsAdopted { get; set; }
+    public IsAdopted? IsAdopted { get; set; }
     public string? IsAdoptedOther { get; set; }
     public string? RespDept { get; set; } //負責部門
     
@@ -51,14 +51,14 @@ public class SuggestData
     public decimal? Budget { get; set; } // 投入改善經費
     
     [Column(TypeName = "tinyint")] // 是否完成改善
-    public IsAdopted Completed { get; set; }
+    public IsAdopted? Completed { get; set; }
     
     public string? CompletedOther { get; set; }
     public int? DoneYear { get; set; } // 完成/預計完成日期 西元年份
     public int? DoneMonth { get; set; } // 完成/預計完成日期 月份
     
     [Column(TypeName = "tinyint")] // 是否平行展開
-    public IsAdopted ParallelExec { get; set; }
+    public IsAdopted? ParallelExec { get; set; }
     public string? ParallelExecOther { get; set; }
     
     public string? ExecPlan { get; set; } // 平行展開執行規劃

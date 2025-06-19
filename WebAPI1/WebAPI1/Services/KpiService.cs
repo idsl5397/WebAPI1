@@ -6,6 +6,12 @@ using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
+public class KpiFieldOptionDto
+{
+    public int Id { get; set; }
+    public string Field { get; set; }
+}
+
 public class KpiDisplayGroupedDto
 {
     public int Id { get; set; }
@@ -18,6 +24,7 @@ public class KpiDisplayGroupedDto
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
+    public bool IsIndicator { get; set; }
     
     // 新增：最新一筆 KpiData 資訊
     public string? LastKpiCycleName { get; set; }
@@ -92,6 +99,7 @@ public class KpisingleRow
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
     public string? ComparisonOperator { get; set; }
+    public string IsIndicator { get; set; }
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal BaselineValue { get; set; }
@@ -110,6 +118,7 @@ public class KpimanyRow
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
+    public bool IsIndicator { get; set; }
     public bool IsApplied { get; set; }
     public string KpiCycleName { get; set; }
     public string BaselineYear { get; set; }
@@ -160,10 +169,10 @@ public class KpiimportexcelDto
     public string? ProductionSite { get; set; }
     public string Category { get; set; }
     public string Field { get; set; }
-    public int IndicatorNumber { get; set; }
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
     public string Unit { get; set; }
+    public bool IsIndicator { get; set; }
     public bool IsApplied { get; set; }
     public string BaselineYear { get; set; }
     public decimal? BaselineValue { get; set; }
@@ -199,7 +208,7 @@ public interface IKpiService
     Task<List<KpiReportInsertDto>> LoadDraftReportsAsync(int organizationId, int year, string quarter);
     //績效指標顯示功能
     Task<List<KpiDisplayGroupedDto>> GetKpiDisplayAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? startQuarter = null,
-        string? endQuarter = null, string? categoryName = null, string? fieldName = null);
+        string? endQuarter = null, string? keyword = null, string? categoryName = null, string? fieldName = null);
     //想做延遲分頁顯示功能但未完成
     Task<KpiService.PagedResult<KpiDisplayDto>> GetKpiDisplayPagedAsync(
         int page = 1,
@@ -217,7 +226,8 @@ public interface IKpiService
     List<KpiimportexcelDto> ParseFullImportExcel(Stream fileStream);
     //系統使用者匯入所有資料使用
     Task<(bool Success, string Message)> BatchFullKpiDataAsync(List<KpiimportexcelDto> rows);
-    
+    //讀取field資料
+    Task<List<KpiFieldOptionDto>> GetAllFieldsAsync();
     //讀取cycle資料
     Task<List<KpiCycle>> GetAllCyclesAsync();
 }
@@ -247,6 +257,18 @@ public class KpiService:IKpiService
         _db = db;
         _logger = logger;
         _organizationService = organizationService;
+    }
+    
+    public async Task<List<KpiFieldOptionDto>> GetAllFieldsAsync()
+    {
+        return await _db.KpiFields
+            .OrderBy(f => f.field)
+            .Select(f => new KpiFieldOptionDto
+            {
+                Id = f.Id,
+                Field = f.field
+            })
+            .ToListAsync();
     }
     
     public async Task<KpiField> CreateKpiFieldAsync(CreateKpiFieldDto dto)
@@ -359,6 +381,7 @@ public class KpiService:IKpiService
                 KpiItemId = item.Id,
                 Unit = row.Unit,
                 ComparisonOperator = row.ComparisonOperator,
+                IsIndicator = bool.TryParse(row.IsIndicator, out var isIndicator) && isIndicator,
                 CreateTime = now,
                 UploadTime = now
             };
@@ -545,6 +568,7 @@ public class KpiService:IKpiService
         int? endYear = null,
         string? startQuarter = null,
         string? endQuarter = null,
+        string? keyword = null,
         string? categoryName = null,
         string? fieldName = null)
     {
@@ -585,7 +609,19 @@ public class KpiService:IKpiService
                 (!startYear.HasValue || r.Year >= startYear) &&
                 (!endYear.HasValue || r.Year <= endYear)));
         }
-
+        
+        // ✅ 關鍵字搜尋條件（不限欄位）
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(d =>
+                d.DetailItem.KpiItem.KpiItemNames.Any(n => n.Name.Contains(keyword)) ||
+                d.DetailItem.KpiDetailItemNames.Any(n => n.Name.Contains(keyword)) ||
+                d.DetailItem.KpiItem.KpiField.field.Contains(keyword) ||
+                d.Organization.Name.Contains(keyword) ||
+                d.ProductionSite.Contains(keyword) ||
+                d.Remarks.Contains(keyword));
+        }
+        
         // 季度排序轉換函式
         int QuarterOrder(string q) => q switch
         {
@@ -633,10 +669,11 @@ public class KpiService:IKpiService
                     Company = latestKpiData?.Organization?.Name,
                     Category = latestKpiData?.DetailItem?.KpiItem?.KpiCategoryId == 1 ? "客製型" : "基礎型",
                     Field = latestKpiData?.DetailItem?.KpiItem?.KpiField?.field,
+                    IndicatorNumber = latestKpiData.DetailItem.KpiItem.IndicatorNumber,
                     IndicatorName = g.First().DetailItem.KpiItem.KpiItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
                     DetailItemName = g.First().DetailItem.KpiDetailItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
                     Unit = g.First().DetailItem.Unit,
-
+                    IsIndicator = latestKpiData?.DetailItem?.IsIndicator ?? false,
                     LastKpiCycleName = latestKpiData?.KpiCycle.CycleName,
                     LastBaselineYear = latestKpiData?.BaselineYear,
                     LastBaselineValue = latestKpiData?.BaselineValue,
@@ -944,6 +981,11 @@ public class KpiService:IKpiService
         return drafts;
     }
     
+    private bool ConvertYesNoToBool(string? value)
+    {
+        return value?.Trim() == "是";
+    }
+    
     private static string GetCellString(ICell cell)
     {
         if (cell == null) return string.Empty;
@@ -995,13 +1037,14 @@ public class KpiService:IKpiService
                 IndicatorName = GetCellString(row.GetCell(5)),
                 DetailItemName = GetCellString(row.GetCell(6)),
                 Unit = GetCellString(row.GetCell(7)),
-                IsApplied = GetCellString(row.GetCell(8)) == "是",
-                KpiCycleName = GetCellString(row.GetCell(9)),
-                BaselineYear = GetCellString(row.GetCell(10)),
-                BaselineValue = GetCellDecimal(row.GetCell(11)),
-                ComparisonOperator = GetCellString(row.GetCell(12)),
-                TargetValue = GetCellDecimal(row.GetCell(13)),
-                Remarks = GetCellString(row.GetCell(14))
+                IsIndicator = ConvertYesNoToBool(GetCellString(row.GetCell(8))),
+                IsApplied = GetCellString(row.GetCell(9)) == "是",
+                KpiCycleName = GetCellString(row.GetCell(10)),
+                BaselineYear = GetCellString(row.GetCell(11)),
+                BaselineValue = GetCellDecimal(row.GetCell(12)),
+                ComparisonOperator = GetCellString(row.GetCell(13)),
+                TargetValue = GetCellDecimal(row.GetCell(14)),
+                Remarks = GetCellString(row.GetCell(15))
             };
 
             result.Add(dto);
@@ -1122,6 +1165,7 @@ public class KpiService:IKpiService
                             KpiItemId = item.Id,
                             Unit = row.Unit,
                             ComparisonOperator = row.ComparisonOperator,
+                            IsIndicator = row.IsIndicator,
                             CreateTime = now,
                             UploadTime = now,
                             KpiDetailItemNames = new List<KpiDetailItemName>
@@ -1228,23 +1272,24 @@ public class KpiService:IKpiService
                     IndicatorName = GetCellString(row.GetCell(6)),
                     DetailItemName = GetCellString(row.GetCell(7)),
                     Unit = GetCellString(row.GetCell(8)),
-                    IsApplied = GetCellString(row.GetCell(9)) == "是",
-                    BaselineYear = GetCellString(row.GetCell(10)),
-                    BaselineValue = GetCellDecimal(row.GetCell(11)),
+                    IsIndicator = ConvertYesNoToBool(GetCellString(row.GetCell(9))),
+                    IsApplied = ConvertYesNoToBool(GetCellString(row.GetCell(10))),
+                    BaselineYear = GetCellString(row.GetCell(11)),
+                    BaselineValue = GetCellDecimal(row.GetCell(12)),
                     Reports = new List<KpiReportDto>
                     {
-                        new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(12))},
-                        new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
-                        new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))}
+                        new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
+                        new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
+                        new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))}
                     },
-                    TargetValue = GetCellDecimal(row.GetCell(15)),
-                    ComparisonOperator = GetCellString(row.GetCell(16)),
-                    Remarks = GetCellString(row.GetCell(17)),
-                    NewBaselineYear = GetCellString(row.GetCell(18)),
-                    NewBaselineValue = GetCellDecimal(row.GetCell(19)),
-                    NewExecutionValue = GetCellDecimal(row.GetCell(20)),
-                    NewTargetValue = GetCellDecimal(row.GetCell(21)),
-                    NewRemarks = GetCellString(row.GetCell(22)),
+                    TargetValue = GetCellDecimal(row.GetCell(16)),
+                    ComparisonOperator = GetCellString(row.GetCell(17)),
+                    Remarks = GetCellString(row.GetCell(18)),
+                    NewBaselineYear = GetCellString(row.GetCell(19)),
+                    NewBaselineValue = GetCellDecimal(row.GetCell(20)),
+                    NewExecutionValue = GetCellDecimal(row.GetCell(21)),
+                    NewTargetValue = GetCellDecimal(row.GetCell(22)),
+                    NewRemarks = GetCellString(row.GetCell(23)),
                 };
 
                 result.Add(data);
@@ -1354,6 +1399,7 @@ public class KpiService:IKpiService
                             KpiItemId = item.Id,
                             Unit = row.Unit,
                             ComparisonOperator = row.ComparisonOperator,
+                            IsIndicator = row.IsIndicator,
                             CreateTime = now,
                             UploadTime = now,
                             KpiDetailItemNames = new List<KpiDetailItemName>

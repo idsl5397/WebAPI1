@@ -60,21 +60,22 @@ public class AddSuggestDto
     public int OrganizationId { get; set; }
     public DateTime Date { get; set; }
     public string Category { get; set; }
+    public string? EnCategory { get; set; }
     public string Committee { get; set; } = null!;
     public string Suggestion { get; set; } = null!;
     public string SuggestionType { get; set; } = null!;
     public string SuggestEventType { get; set; }
-    public string Department { get; set; } = null!;
-    public IsAdopted IsAdopted { get; set; }
+    public string? Department { get; set; }
+    public IsAdopted? IsAdopted { get; set; }
     public string? AdoptedOther { get; set; }
-    public string ImproveDetail { get; set; } = null!;
+    public string? ImproveDetail { get; set; }
     public int? Manpower { get; set; }
     public decimal? Budget { get; set; }
-    public IsAdopted IsCompleted { get; set; }
+    public IsAdopted? IsCompleted { get; set; }
     public string? CompletedOther { get; set; }
-    public string DoneYear { get; set; } = null!;
-    public string DoneMonth { get; set; } = null!;
-    public IsAdopted IsParallel { get; set; }
+    public string? DoneYear { get; set; }
+    public string? DoneMonth { get; set; }
+    public IsAdopted? IsParallel { get; set; }
     public string? ParallelOther { get; set; }
     public string? ExecPlan { get; set; }
     public string? Remark { get; set; }
@@ -110,7 +111,7 @@ public class SuggestDto
 
 public interface ISuggestService
 {
-    public Task<List<SuggestDto>> GetAllSuggestsAsync(int? organizationId = null, int? startYear = null, int? endYear = null);
+    public Task<List<SuggestDto>> GetAllSuggestsAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? keyword = null);
     public Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto);
     public Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream);
 
@@ -186,7 +187,8 @@ public class SuggestService:ISuggestService
     public async Task<List<SuggestDto>> GetAllSuggestsAsync(
         int? organizationId = null,
         int? startYear = null,
-        int? endYear = null)
+        int? endYear = null,
+        string? keyword = null)
     {
         var query = _context.SuggestDatas
             .Include(s => s.SuggestEventType)
@@ -214,6 +216,24 @@ public class SuggestService:ISuggestService
             query = query.Where(d => d.Date.Year <= endYear.Value);
         }
 
+        // ✅ 模糊搜尋（多欄位）
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            keyword = keyword.Trim();
+            query = query.Where(s =>
+                s.SuggestionContent.Contains(keyword) ||
+                s.RespDept.Contains(keyword) ||
+                s.ImproveDetails.Contains(keyword) ||
+                s.ExecPlan.Contains(keyword) ||
+                s.Remark.Contains(keyword) ||
+                s.SuggestEventType.Name.Contains(keyword) ||
+                s.SuggestionType.Name.Contains(keyword) ||
+                s.Organization.Name.Contains(keyword) ||
+                s.KpiField.field.Contains(keyword) ||
+                s.User.Nickname.Contains(keyword)
+            );
+        }
+        
         var data = await query
             .OrderByDescending(s => s.Date)
             .ToListAsync();
@@ -248,18 +268,29 @@ public class SuggestService:ISuggestService
         {
             var now = DateTime.UtcNow;
             
-            // 取得 KpiFieldId（支援中英文判斷）
+            // 取得或建立 KpiFieldId（支援中英文判斷 + 若無則新增）
             var fieldInput = dto.Category?.Trim();
+
             if (string.Equals(fieldInput, "製程安全", StringComparison.OrdinalIgnoreCase))
             {
                 fieldInput = "製程安全管理";
             }
-            var kpiField = await _context.KpiFields.FirstOrDefaultAsync(f =>
-                f.field == fieldInput || f.enfield == fieldInput);
+
+            var kpiField = await _context.KpiFields
+                .FirstOrDefaultAsync(f => f.field == fieldInput || f.enfield == fieldInput);
 
             if (kpiField == null)
             {
-                return (false, $"找不到對應的指標領域（{fieldInput}）");
+                kpiField = new KpiField
+                {
+                    field = fieldInput,
+                    enfield = dto.EnCategory, // 可以後續根據語言標準自動轉換
+                    CreatedAt = now,
+                    UpdateAt = now
+                };
+
+                _context.KpiFields.Add(kpiField);
+                await _context.SaveChangesAsync();
             }
             
             // 根據 nickname 找出對應的使用者

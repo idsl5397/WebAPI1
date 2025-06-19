@@ -24,6 +24,10 @@ public class KpiDetailItem
     [StringLength(3)]
     public string? ComparisonOperator { get; set; }
     
+    /// <summary>
+    /// 是否為指標項目
+    /// </summary>
+    public bool IsIndicator { get; set; }
     public virtual ICollection<KpiData> KpiDatas { get; set; } = new List<KpiData>();
     public virtual ICollection<KpiDetailItemName> KpiDetailItemNames { get; set; } = new List<KpiDetailItemName>();
     

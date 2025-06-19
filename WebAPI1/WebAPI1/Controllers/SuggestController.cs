@@ -11,20 +11,22 @@ public class SuggestController: ControllerBase
     private readonly ILogger<SuggestController> _logger;
     private readonly ISuggestService _suggestService;
     private readonly IUserService _userService;
+    private readonly IKpiService _kpiService;
     
-    public SuggestController(ILogger<SuggestController> logger,isha_sys_devContext db,ISuggestService suggestService,IUserService userService)
+    public SuggestController(ILogger<SuggestController> logger,isha_sys_devContext db,ISuggestService suggestService,IUserService userService, IKpiService kpiService)
     {
         _db = db;
         _suggestService = suggestService;
         _logger = logger;
         _userService = userService;
+        _kpiService = kpiService;
     }
 
     
     [HttpGet("GetAllSuggest")]
-    public async Task<ActionResult<IEnumerable<SuggestDto>>> GetAll([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear)
+    public async Task<ActionResult<IEnumerable<SuggestDto>>> GetAll([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear, [FromQuery] string? keyword)
     {
-        var suggests = await _suggestService.GetAllSuggestsAsync(organizationId, startYear, endYear);
+        var suggests = await _suggestService.GetAllSuggestsAsync(organizationId, startYear, endYear, keyword);
         return Ok(suggests);
     }
     
@@ -33,6 +35,13 @@ public class SuggestController: ControllerBase
     {
         var suggests = await _userService.GetCommitteeUsers();
         return Ok(suggests);
+    }
+    
+    [HttpGet("GetAllCategories")]
+    public async Task<IActionResult> GetAllCategories()
+    {
+        var fields = await _kpiService.GetAllFieldsAsync();
+        return Ok(fields);
     }
     
     [HttpPost("import-singleSuggest")]

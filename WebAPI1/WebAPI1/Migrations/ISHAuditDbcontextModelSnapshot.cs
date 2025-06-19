@@ -155,6 +155,9 @@ namespace WebAPI1.Migrations
                     b.Property<DateTime>("CreateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsIndicator")
+                        .HasColumnType("bit");
+
                     b.Property<int>("KpiItemId")
                         .HasColumnType("int");
 
@@ -633,7 +636,7 @@ namespace WebAPI1.Migrations
                     b.Property<decimal?>("Budget")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<byte>("Completed")
+                    b.Property<byte?>("Completed")
                         .HasColumnType("tinyint");
 
                     b.Property<string>("CompletedOther")
@@ -657,7 +660,7 @@ namespace WebAPI1.Migrations
                     b.Property<string>("ImproveDetails")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte>("IsAdopted")
+                    b.Property<byte?>("IsAdopted")
                         .HasColumnType("tinyint");
 
                     b.Property<string>("IsAdoptedOther")
@@ -672,7 +675,7 @@ namespace WebAPI1.Migrations
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("int");
 
-                    b.Property<byte>("ParallelExec")
+                    b.Property<byte?>("ParallelExec")
                         .HasColumnType("tinyint");
 
                     b.Property<string>("ParallelExecOther")
