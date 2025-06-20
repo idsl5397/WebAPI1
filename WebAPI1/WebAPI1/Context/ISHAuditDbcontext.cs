@@ -143,6 +143,7 @@ public partial class ISHAuditDbcontext : DbContext
             .HasForeignKey(o => o.ParentId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+        
         // 與 OrganizationDomain 的一對多關聯
         modelBuilder.Entity<Organization>()
             .HasMany(o => o.Domains)

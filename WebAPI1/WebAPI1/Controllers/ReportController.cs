@@ -47,4 +47,23 @@ public class ReportController: ControllerBase
         var result = await _reportService.GetTop10CompanySuggestionStatsAsync(year, suggestionTypeId);
         return Ok(new { success = true, data = result });
     }
+    
+    /// <summary>
+    /// 取得改善建議完成率排名（依公司分類，完成率低者排前）
+    /// </summary>
+    /// <param name="topN">可選參數，指定只取前 N 名</param>
+    /// <returns></returns>
+    [HttpGet("completion-ranking")]
+    public async Task<ActionResult<List<CompanyCompletionRankingDto>>> GetCompletionRanking([FromQuery] int? topN = null)
+    {
+        var result = await _reportService.GetCompletionRankingAsync(topN);
+        return Ok(result);
+    }
+    
+    [HttpGet("uncompleted-suggestions")]
+    public async Task<ActionResult<List<SuggestUncompletedDto>>> GetUncompletedSuggestions([FromQuery] int organizationId)
+    {
+        var result = await _reportService.GetUncompletedSuggestionsAsync(organizationId);
+        return Ok(result);
+    }
 }

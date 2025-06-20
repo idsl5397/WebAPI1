@@ -26,6 +26,35 @@ public class KpiFieldSuggestionCountDto
     public string Category { get; set; } = string.Empty;
     public int Count { get; set; }
 }
+public class CompanyCompletionRankingDto
+{
+    public int OrganizationId { get; set; }
+
+    public string OrganizationName { get; set; } = string.Empty;
+
+    public int CompletedYes { get; set; }   // Completed == 是
+
+    public int CompletedNo { get; set; }    // Completed == 否
+
+    public int Total => CompletedYes + CompletedNo;
+
+    /// <summary>完成率 (0–1)，若沒有可計算的資料則為 0</summary>
+    public decimal CompletionRate { get; set; }
+}
+
+public class SuggestUncompletedDto
+{
+    public int Id { get; set; }
+    [Column(TypeName = "date")]
+    [JsonConverter(typeof(DateOnlyJsonConverter))]
+    public DateTime Date { get; set; }
+    public string SuggestionContent { get; set; }
+    public string KpiField { get; set; }
+    public string EventType { get; set; }
+    public string RespDept { get; set; }
+    public string Remark { get; set; }
+    public string IsAdopted { get; set; }
+}
 public interface IReportService
 {
     Task<List<KpiCompletionRateDto>> GetKpiCompletionRatesAsync(int? organizationId);
@@ -34,6 +63,13 @@ public interface IReportService
 
     Task<List<CompanySuggestionStatsDto>> GetTop10CompanySuggestionStatsAsync(int? year = null,
         int? suggestionTypeId = null);
+    
+    /// <summary>
+    /// 取得各公司改善建議完成率排名  
+    /// 預設全部列出，可透過 <paramref name="topN"/> 只取前 N 名
+    /// </summary>
+    Task<IReadOnlyList<CompanyCompletionRankingDto>> GetCompletionRankingAsync(int? topN = null);
+    Task<List<SuggestUncompletedDto>> GetUncompletedSuggestionsAsync(int organizationId);
 }
 
 public class ReportService:IReportService
@@ -154,5 +190,70 @@ public class ReportService:IReportService
             .ToListAsync();
 
         return result;
+    }
+    
+    public async Task<IReadOnlyList<CompanyCompletionRankingDto>> GetCompletionRankingAsync(int? topN = null)
+    {
+        // 1. 先把 Adopted=是 的資料取出，並且 Completed 必須是 是/否
+        var groupedQuery =
+            from s in _context.SuggestDatas.AsNoTracking()
+            join o in _context.Organizations.AsNoTracking()
+                on s.OrganizationId equals o.Id
+            where s.IsAdopted == IsAdopted.是               // ✅ 只統計「已參採」的建議
+                  && (s.Completed == IsAdopted.是              // ✅ Completed 只能是 是 或 否
+                      || s.Completed == IsAdopted.否)
+            group new { s, o } by new { o.Id, o.Name } into g
+            select new
+            {
+                g.Key.Id,
+                g.Key.Name,
+                CompletedYes = g.Count(x => x.s.Completed == IsAdopted.是),
+                CompletedNo  = g.Count(x => x.s.Completed == IsAdopted.否)
+            };
+
+        // 2. 轉成 DTO、計算完成率、排序
+        var ordered = groupedQuery
+            .AsEnumerable()
+            .Select(x => new CompanyCompletionRankingDto
+            {
+                OrganizationId   = x.Id,
+                OrganizationName = x.Name,
+                CompletedYes     = x.CompletedYes,
+                CompletedNo      = x.CompletedNo,
+                CompletionRate   = (x.CompletedYes + x.CompletedNo) == 0
+                    ? 0
+                    : (decimal)x.CompletedYes / (x.CompletedYes + x.CompletedNo)
+            })
+            .OrderBy(r => r.CompletionRate)        // 完成率低 → 高
+            .ThenByDescending(r => r.CompletedNo); // 同率時未完成多者優先
+
+        // 3. 需求若有限制前 N 名
+        var final = topN.HasValue
+            ? ordered.Take(topN.Value)
+            : ordered;
+
+        return final.ToList();
+    }
+    
+    public async Task<List<SuggestUncompletedDto>> GetUncompletedSuggestionsAsync(int organizationId)
+    {
+        return await _context.SuggestDatas
+            .AsNoTracking()
+            .Where(s =>
+                s.OrganizationId == organizationId &&
+                s.Completed == IsAdopted.否)
+            .Select(s => new SuggestUncompletedDto
+            {
+                Id = s.Id,
+                Date = s.Date,
+                SuggestionContent = s.SuggestionContent,
+                KpiField = s.KpiField.field,
+                EventType = s.SuggestEventType.Name,
+                RespDept = s.RespDept,
+                Remark = s.Remark,
+                IsAdopted = s.IsAdopted.ToString()
+            })
+            .OrderByDescending(s => s.Date)
+            .ToListAsync();
     }
 }
