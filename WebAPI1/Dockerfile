@@ -44,7 +44,6 @@ ENV Logging__LogLevel__Default=Information \
     JwtSettings__Key= \
     JwtSettings__Issuer= \
     JwtSettings__Audience= \
-    ConnectionStrings__WebDatabase= \
     ConnectionStrings__Redis=kpi_redis:6380,password=MyP@ssw0rd123,abortConnect=false,connectRetry=3
 
 ENTRYPOINT ["dotnet", "WebAPI1.dll"]
