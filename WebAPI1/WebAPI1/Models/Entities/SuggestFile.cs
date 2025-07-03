@@ -20,7 +20,7 @@ public class SuggestFile
     public string ReportName { get; set; } // 報告書名稱
 
     [MaxLength(100)]
-    public string ReportType { get; set; } // 報告書類型
+    public string? ReportType { get; set; } // 報告書類型
 
     public DateTime? CreatedAt { get; set; }
 

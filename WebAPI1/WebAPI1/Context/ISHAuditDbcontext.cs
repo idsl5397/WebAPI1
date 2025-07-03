@@ -24,7 +24,7 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<KpiDetailItemName> KpiDetailItemNames { get; set; }
     public virtual DbSet<KpiData> KpiDatas { get; set; }
     public virtual DbSet<KpiReport> KpiReports { get; set; }
-    public virtual DbSet<SuggestData> SuggestDatas { get; set; }
+    public virtual DbSet<KpiCycle> KpiCycles { get; set; }
     public virtual DbSet<DataChangeLog> DataChangeLogs { get; set; }
     public virtual DbSet<Menu> Menus { get; set; }
     public virtual DbSet<MenuRole> MenusRoles { get; set; }
@@ -37,7 +37,9 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<UserPasswordHistory> UserRPasswordHistories { get; set; }
     public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
     public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
-    public virtual DbSet<KpiCycle> KpiCycles { get; set; }
+    public virtual DbSet<SuggestDate> SuggestDates { get; set; }
+    public virtual DbSet<SuggestReport> SuggestReports { get; set; }
+    public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -57,36 +59,36 @@ public partial class ISHAuditDbcontext : DbContext
     {
         OnModelCreatingPartial(modelBuilder);
         
-        // SuggestEventType 與 SuggestData 關聯設定
+        // SuggestEventType 與 SuggestDate 關聯設定
         modelBuilder.Entity<SuggestEventType>()
-            .HasMany(e => e.SuggestDatas)
+            .HasMany(e => e.SuggestDates)
             .WithOne(d => d.SuggestEventType)
             .HasForeignKey(d => d.SuggestEventTypeId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // SuggestionType 與 SuggestData 關聯設定
+        // SuggestionType 與 SuggestReport 關聯設定
         modelBuilder.Entity<SuggestionType>()
-            .HasMany(t => t.SuggestDatas)
+            .HasMany(t => t.SuggestReports)
             .WithOne(d => d.SuggestionType)
             .HasForeignKey(d => d.SuggestionTypeId)
             .OnDelete(DeleteBehavior.NoAction);
         
-        // Organization 與 SuggestData 關聯設定
-        modelBuilder.Entity<SuggestData>()
+        // Organization 與 SuggestDate 關聯設定
+        modelBuilder.Entity<SuggestDate>()
             .HasOne(c => c.Organization)
             .WithMany()
             .HasForeignKey(d => d.OrganizationId);
         
-        // KpiField 與 SuggestData 關聯設定
+        // KpiField 與 SuggestReport 關聯設定
         modelBuilder.Entity<KpiField>()
-            .HasMany(c => c.SuggestDatas)
+            .HasMany(c => c.SuggestReports)
             .WithOne(s => s.KpiField)
             .HasForeignKey(s => s.KpiFieldId)
             .OnDelete(DeleteBehavior.NoAction);
         
         // UserInfo 與 SuggestData 關聯設定
         modelBuilder.Entity<User>()
-            .HasMany(c => c.SuggestDatas)
+            .HasMany(c => c.SuggestReports)
             .WithOne(s => s.User)
             .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.NoAction);

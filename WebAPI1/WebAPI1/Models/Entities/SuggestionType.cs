@@ -18,5 +18,5 @@ public class SuggestionType
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
-    public virtual ICollection<SuggestData> SuggestDatas { get; set; } = new List<SuggestData>();
+    public virtual ICollection<SuggestReport> SuggestReports { get; set; } = new List<SuggestReport>();
 }

@@ -7,6 +7,7 @@ using NPOI.XSSF.UserModel;
 using WebAPI1.Context;
 using WebAPI1.Entities;
 using WebAPI1.Models;
+using Exception = System.Exception;
 
 namespace WebAPI1.Services;
 
@@ -111,12 +112,18 @@ public class SuggestDto
 
 public interface ISuggestService
 {
-    public Task<List<SuggestDto>> GetAllSuggestsAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? keyword = null);
-    public Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto);
-    public Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream);
+    Task<List<SuggestDto>> GetAllSuggestsAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? keyword = null);
+    Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto);
+    Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream);
 
-    public Task<(bool Success, string Message, int SuccessCount, int FailCount)> BatchInsertSuggestAsync(
+    Task<(bool Success, string Message, int SuccessCount, int FailCount)> BatchInsertSuggestAsync(
         List<SuggestmanyRow> rows);
+
+    Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId);
+    Task<List<object>> PreviewAsync(IFormFile file);
+    Task<(bool Success, string Message)> ImportAsync(IFormFile file);
+    Task<List<object>> GetReportsByOrganizationAsync(int organizationId);
+    Task<bool> UpdateSuggestReportsAsync(List<SuggestDto> reports);
 
 }
 
@@ -185,80 +192,81 @@ public class SuggestService:ISuggestService
             : IsAdopted.否;
     }
     public async Task<List<SuggestDto>> GetAllSuggestsAsync(
-        int? organizationId = null,
-        int? startYear = null,
-        int? endYear = null,
-        string? keyword = null)
+    int? organizationId = null,
+    int? startYear = null,
+    int? endYear = null,
+    string? keyword = null)
     {
-        var query = _context.SuggestDatas
-            .Include(s => s.SuggestEventType)
-            .Include(s => s.SuggestionType)
-            .Include(s => s.Organization)
-            .Include(s => s.KpiField)
-            .Include(s => s.User)
+        var query = _context.SuggestReports
+            .Include(r => r.SuggestDate)
+                .ThenInclude(d => d.Organization)
+            .Include(r => r.SuggestDate.SuggestEventType)
+            .Include(r => r.SuggestionType)
+            .Include(r => r.KpiField)
+            .Include(r => r.User)
             .AsQueryable();
 
         // 篩選：組織（含下層）
         if (organizationId.HasValue)
         {
             var orgIds = _organizationService.GetDescendantOrganizationIds(organizationId.Value);
-            query = query.Where(d => orgIds.Contains(d.Organization.Id));
+            query = query.Where(r => orgIds.Contains(r.SuggestDate.OrganizationId ?? 0));
         }
 
-        // 篩選：年份（根據日期中的年份）
+        // 篩選：年份（根據 SuggestDate.Date）
         if (startYear.HasValue)
         {
-            query = query.Where(d => d.Date.Year >= startYear.Value);
+            query = query.Where(r => r.SuggestDate.Date.Year >= startYear.Value);
         }
 
         if (endYear.HasValue)
         {
-            query = query.Where(d => d.Date.Year <= endYear.Value);
+            query = query.Where(r => r.SuggestDate.Date.Year <= endYear.Value);
         }
 
-        // ✅ 模糊搜尋（多欄位）
+        // 模糊搜尋（跨表欄位）
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             keyword = keyword.Trim();
-            query = query.Where(s =>
-                s.SuggestionContent.Contains(keyword) ||
-                s.RespDept.Contains(keyword) ||
-                s.ImproveDetails.Contains(keyword) ||
-                s.ExecPlan.Contains(keyword) ||
-                s.Remark.Contains(keyword) ||
-                s.SuggestEventType.Name.Contains(keyword) ||
-                s.SuggestionType.Name.Contains(keyword) ||
-                s.Organization.Name.Contains(keyword) ||
-                s.KpiField.field.Contains(keyword) ||
-                s.User.Nickname.Contains(keyword)
+            query = query.Where(r =>
+                r.SuggestionContent.Contains(keyword) ||
+                r.RespDept.Contains(keyword) ||
+                r.ImproveDetails.Contains(keyword) ||
+                r.ExecPlan.Contains(keyword) ||
+                r.Remark.Contains(keyword) ||
+                r.SuggestDate.SuggestEventType.Name.Contains(keyword) ||
+                r.SuggestionType.Name.Contains(keyword) ||
+                r.SuggestDate.Organization.Name.Contains(keyword) ||
+                r.KpiField.field.Contains(keyword) ||
+                r.User.Nickname.Contains(keyword)
             );
         }
-        
+
         var data = await query
-            .OrderByDescending(s => s.Date)
+            .OrderByDescending(r => r.SuggestDate.Date)
             .ToListAsync();
 
-        return data.Select(s => new SuggestDto
+        return data.Select(r => new SuggestDto
         {
-            Id = s.Id,
-            Date = s.Date,
-            SuggestionContent = s.SuggestionContent,
-            SuggestEventTypeName = s.SuggestEventType?.Name,
-            SuggestionTypeName = s.SuggestionType?.Name,
-            IsAdopted = s.IsAdopted.ToString(),
-            RespDept = s.RespDept,
-            ImproveDetails = s.ImproveDetails,
-            Manpower = s.Manpower,
-            Budget = s.Budget,
-            Completed = s.Completed.ToString(),
-            DoneYear = s.DoneYear,
-            DoneMonth = s.DoneMonth,
-            ParallelExec = s.ParallelExec.ToString(),
-            ExecPlan = s.ExecPlan,
-            Remark = s.Remark,
-            OrganizationName = s.Organization?.Name,
-            KpiFieldName = s.KpiField?.field,
-            UserName = s.User?.Nickname,
+            Id = r.Id,
+            Date = r.SuggestDate.Date,
+            SuggestionContent = r.SuggestionContent,
+            SuggestEventTypeName = r.SuggestDate.SuggestEventType?.Name,
+            SuggestionTypeName = r.SuggestionType?.Name,
+            IsAdopted = r.IsAdopted.ToString(),
+            RespDept = r.RespDept,
+            ImproveDetails = r.ImproveDetails,
+            Manpower = r.Manpower,
+            Budget = r.Budget,
+            Completed = r.Completed.ToString(),
+            DoneYear = r.DoneYear,
+            DoneMonth = r.DoneMonth,
+            ParallelExec = r.ParallelExec.ToString(),
+            ExecPlan = r.ExecPlan,
+            Remark = r.Remark,
+            OrganizationName = r.SuggestDate.Organization?.Name,
+            KpiFieldName = r.KpiField?.field,
+            UserName = r.User?.Nickname,
         }).ToList();
     }
     
@@ -267,14 +275,11 @@ public class SuggestService:ISuggestService
         try
         {
             var now = DateTime.UtcNow;
-            
-            // 取得或建立 KpiFieldId（支援中英文判斷 + 若無則新增）
-            var fieldInput = dto.Category?.Trim();
 
+            // 處理 KpiField
+            var fieldInput = dto.Category?.Trim();
             if (string.Equals(fieldInput, "製程安全", StringComparison.OrdinalIgnoreCase))
-            {
                 fieldInput = "製程安全管理";
-            }
 
             var kpiField = await _context.KpiFields
                 .FirstOrDefaultAsync(f => f.field == fieldInput || f.enfield == fieldInput);
@@ -284,65 +289,70 @@ public class SuggestService:ISuggestService
                 kpiField = new KpiField
                 {
                     field = fieldInput,
-                    enfield = dto.EnCategory, // 可以後續根據語言標準自動轉換
+                    enfield = dto.EnCategory,
                     CreatedAt = now,
                     UpdateAt = now
                 };
-
                 _context.KpiFields.Add(kpiField);
                 await _context.SaveChangesAsync();
             }
-            
-            // 根據 nickname 找出對應的使用者
+
+            // 委員帳號
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Nickname == dto.Committee);
 
             if (user == null)
-            {
                 return (false, $"找不到對應的委員帳戶（{dto.Committee}）");
-            }
-    
-            // 檢查建議類別是否存在
+
+            // 建議類別
             var suggestType = await _context.SuggestionTypes
                 .FirstOrDefaultAsync(x => x.Name == dto.SuggestionType);
             if (suggestType == null)
             {
-                suggestType = new SuggestionType
-                {
-                    Name = dto.SuggestionType,
-                    CreatedAt = now
-                };
+                suggestType = new SuggestionType { Name = dto.SuggestionType, CreatedAt = now };
                 _context.SuggestionTypes.Add(suggestType);
                 await _context.SaveChangesAsync();
             }
-    
-            // 檢查會議/活動類別是否存在
+
+            // 會議/活動類別
             var suggestEventType = await _context.SuggestEventTypes
                 .FirstOrDefaultAsync(x => x.Name == dto.SuggestEventType);
             if (suggestEventType == null)
             {
-                suggestEventType = new SuggestEventType
-                {
-                    Name = dto.SuggestEventType,
-                    CreatedAt = now
-                };
+                suggestEventType = new SuggestEventType { Name = dto.SuggestEventType, CreatedAt = now };
                 _context.SuggestEventTypes.Add(suggestEventType);
                 await _context.SaveChangesAsync();
             }
 
-    
-            // 建立建議資料
-            var suggest = new SuggestData
+            // 取得或建立 SuggestDate（若已有相同組織+日期+建議內容+活動類型，則重用）
+            var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(x =>
+                x.Date == dto.Date &&
+                x.OrganizationId == dto.OrganizationId &&
+                x.SuggestEventTypeId == suggestEventType.Id);
+
+            if (suggestDate == null)
             {
-                OrganizationId= dto.OrganizationId,
-                Date = dto.Date,
-                KpiFieldId = kpiField.Id,
+                suggestDate = new SuggestDate
+                {
+                    Date = dto.Date,
+                    OrganizationId = dto.OrganizationId,
+                    SuggestEventTypeId = suggestEventType.Id,
+                    CreatedAt = now,
+                    UpdateAt = now
+                };
+                _context.SuggestDates.Add(suggestDate);
+                await _context.SaveChangesAsync();
+            }
+
+            // 建立 SuggestReport
+            var report = new SuggestReport
+            {
+                SuggestDateId = suggestDate.Id,
                 SuggestionContent = dto.Suggestion,
                 SuggestionTypeId = suggestType.Id,
-                SuggestEventTypeId = suggestEventType.Id,
-                RespDept = dto.Department,
                 IsAdopted = dto.IsAdopted,
                 IsAdoptedOther = dto.AdoptedOther,
+                RespDept = dto.Department,
                 ImproveDetails = dto.ImproveDetail,
                 Manpower = dto.Manpower,
                 Budget = dto.Budget,
@@ -354,14 +364,15 @@ public class SuggestService:ISuggestService
                 ParallelExecOther = dto.ParallelOther,
                 ExecPlan = dto.ExecPlan,
                 Remark = dto.Remark,
+                KpiFieldId = kpiField.Id,
+                UserId = user.Id,
                 CreatedAt = now,
-                UpdateAt = now,
-                UserId = user.Id
+                UpdateAt = now
             };
-    
-            _context.SuggestDatas.Add(suggest);
+
+            _context.SuggestReports.Add(report);
             await _context.SaveChangesAsync();
-    
+
             return (true, "✅ 匯入成功");
         }
         catch (Exception ex)
@@ -421,7 +432,7 @@ public class SuggestService:ISuggestService
         var now = DateTime.UtcNow;
         int successCount = 0, failCount = 0;
         // 預先查出所有 SuggestionContent 以加速比對（避免逐筆查 DB）
-        var existingContents = await _context.SuggestDatas
+        var existingContents = await _context.SuggestReports
             .Select(x => x.SuggestionContent)
             .ToListAsync();
         var existingSet = new HashSet<string>(existingContents);
@@ -553,15 +564,34 @@ public class SuggestService:ISuggestService
                     }
                 }
 
-                var newSuggest = new SuggestData
+                // 嘗試找出是否已有相同 SuggestDate
+                var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(x =>
+                    x.Date == row.Date &&
+                    x.OrganizationId == row.OrganizationId &&
+                    x.SuggestEventTypeId == suggestEventType.Id);
+
+                if (suggestDate == null)
                 {
-                    OrganizationId = row.OrganizationId,
-                    Date = row.Date,
+                    suggestDate = new SuggestDate
+                    {
+                        OrganizationId = row.OrganizationId,
+                        Date = row.Date,
+                        SuggestEventTypeId = suggestEventType.Id,
+                        CreatedAt = now,
+                        UpdateAt = now
+                    };
+                    _context.SuggestDates.Add(suggestDate);
+                    await _context.SaveChangesAsync();
+                }
+
+                // 建立 SuggestReport
+                var newReport = new SuggestReport
+                {
+                    SuggestDateId = suggestDate.Id,
+                    SuggestionTypeId = suggestType.Id,
                     KpiFieldId = kpiField.Id,
                     UserId = user.Id,
                     SuggestionContent = row.SuggestionContent,
-                    SuggestionTypeId = suggestType.Id,
-                    SuggestEventTypeId = suggestEventType.Id,
                     RespDept = row.RespDept,
                     IsAdopted = ParseIsAdopted(row.IsAdoptedName),
                     ImproveDetails = row.ImproveDetails,
@@ -577,7 +607,7 @@ public class SuggestService:ISuggestService
                     UpdateAt = now
                 };
 
-                _context.SuggestDatas.Add(newSuggest);
+                _context.SuggestReports.Add(newReport);
                 successCount++;
             }
             catch (Exception ex)
@@ -607,5 +637,260 @@ public class SuggestService:ISuggestService
 
         return (true, summary, successCount, failCount);
     }
+    
+    public async Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId)
+    {
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("建議範本");
 
+        // 標題列
+        var headers = new[]
+        {
+            "廠商", "日期", "會議/活動", "類別", "委員", "建議內容",
+            "負責單位", "是否採納", "改善對策/辦理情形", "預估人力投入", "預估經費投入","是否完成改善/辦理",
+            "預估完成年份", "預估完成月份", "平行展開", "展開計畫", "備註"
+        };
+        var headerRow = sheet.CreateRow(0);
+        for (int i = 0; i < headers.Length; i++)
+            headerRow.CreateCell(i).SetCellValue(headers[i]);
+
+        var reports = await _context.SuggestReports
+            .Include(r => r.SuggestDate)
+            .ThenInclude(d => d.Organization) // ✅ 廠商
+            .Include(r => r.User)                // ✅ 委員
+            .Include(r => r.SuggestionType)
+            .Include(r => r.SuggestDate.SuggestEventType)
+            .Where(r => r.SuggestDate.OrganizationId == organizationId)
+            .ToListAsync();
+
+        for (int i = 0; i < reports.Count; i++)
+        {
+            var r = reports[i];
+            var row = sheet.CreateRow(i + 1);
+
+            row.CreateCell(0).SetCellValue(r.SuggestDate.Organization?.Name ?? "");                    // 廠商
+            row.CreateCell(1).SetCellValue(r.SuggestDate.Date.ToString("yyyy-MM-dd"));                // 日期
+            row.CreateCell(2).SetCellValue(r.SuggestDate.SuggestEventType?.Name ?? "");               // 會議/活動
+            row.CreateCell(3).SetCellValue(r.SuggestionType?.Name ?? "");                             // 類別
+            row.CreateCell(4).SetCellValue(r.User?.Nickname ?? "");                                   // 委員
+            row.CreateCell(5).SetCellValue(r.SuggestionContent ?? "");                                // 建議內容
+            row.CreateCell(6).SetCellValue(r.RespDept ?? "");                                          // 負責單位
+            row.CreateCell(7).SetCellValue(r.IsAdopted?.ToString() ?? "");                            // 是否採納
+            row.CreateCell(8).SetCellValue(r.ImproveDetails ?? "");                                   // 改善對策/辦理情形
+            row.CreateCell(9).SetCellValue(r.Manpower?.ToString() ?? "");                             // 預估人力投入
+            row.CreateCell(10).SetCellValue(r.Budget?.ToString() ?? "");                              // 預估經費投入
+            row.CreateCell(11).SetCellValue(r.Completed?.ToString() ?? "");                            // 是否完成改善/辦理
+            row.CreateCell(12).SetCellValue(r.DoneYear?.ToString() ?? "");                            // 預估完成年份
+            row.CreateCell(13).SetCellValue(r.DoneMonth?.ToString() ?? "");                           // 預估完成月份
+            row.CreateCell(14).SetCellValue(r.ParallelExec?.ToString() ?? "");                        // 平行展開
+            row.CreateCell(15).SetCellValue(r.ExecPlan ?? "");                                        // 展開計畫
+            row.CreateCell(16).SetCellValue(r.Remark ?? "");     
+        }
+
+        using var stream = new MemoryStream();
+        workbook.Write(stream);
+        var fileName = $"Suggest_Template_{DateTime.Now:yyyyMMdd}.xlsx";
+        return (fileName, stream.ToArray());
+    }
+    
+    public async Task<List<object>> PreviewAsync(IFormFile file)
+    {
+        using var stream = file.OpenReadStream();
+        var workbook = new XSSFWorkbook(stream);
+        var sheet = workbook.GetSheetAt(0);
+
+        var result = new List<object>();
+
+        for (int i = 1; i <= sheet.LastRowNum; i++)
+        {
+            var row = sheet.GetRow(i);
+            if (row == null) continue;
+
+            result.Add(new
+            {
+                OrgName         = row.GetCell(0)?.ToString(),  // 廠商
+                Date            = row.GetCell(1)?.ToString(),  // 日期
+                EventType       = row.GetCell(2)?.ToString(),  // 會議/活動
+                SuggestType     = row.GetCell(3)?.ToString(),  // 類別
+                UserName        = row.GetCell(4)?.ToString(),  // 委員
+                Content         = row.GetCell(5)?.ToString(),  // 建議內容
+                RespDept        = row.GetCell(6)?.ToString(),  // 負責單位
+                IsAdopted       = row.GetCell(7)?.ToString(),  // 是否採納
+                ImproveDetails  = row.GetCell(8)?.ToString(),  // 改善對策/辦理情形
+                Manpower        = row.GetCell(9)?.ToString(),  // 預估人力投入
+                Budget          = row.GetCell(10)?.ToString(), // 預估經費投入
+                Completed       = row.GetCell(11)?.ToString(), // 是否完成改善/辦理
+                DoneYear        = row.GetCell(12)?.ToString(), // 預估完成年份
+                DoneMonth       = row.GetCell(13)?.ToString(), // 預估完成月份
+                ParallelExec    = row.GetCell(14)?.ToString(), // 平行展開
+                ExecPlan        = row.GetCell(15)?.ToString(), // 展開計畫
+                Remark          = row.GetCell(16)?.ToString()  // 備註
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<(bool Success, string Message)> ImportAsync(IFormFile file)
+    {
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var workbook = new XSSFWorkbook(stream);
+            var sheet = workbook.GetSheetAt(0);
+
+            for (int i = 1; i <= sheet.LastRowNum; i++)
+            {
+                var row = sheet.GetRow(i);
+                if (row == null) continue;
+
+                // === 1. 擷取 Excel 欄位資料 ===
+                var orgName = row.GetCell(0)?.ToString()?.Trim();
+                var dateStr = row.GetCell(1)?.ToString()?.Trim();
+                var eventTypeName = row.GetCell(2)?.ToString()?.Trim();
+                var suggestTypeName = row.GetCell(3)?.ToString()?.Trim();
+                var committeeName = row.GetCell(4)?.ToString()?.Trim();
+                var suggestionContent = row.GetCell(5)?.ToString()?.Trim();
+
+                var respDept = row.GetCell(6)?.ToString()?.Trim();
+                var isAdoptedText = row.GetCell(7)?.ToString()?.Trim();
+                var improveDetails = row.GetCell(8)?.ToString()?.Trim();
+                var manpowerText = row.GetCell(9)?.ToString()?.Trim();
+                var budgetText = row.GetCell(10)?.ToString()?.Trim();
+                var completedText = row.GetCell(11)?.ToString()?.Trim();
+                var doneYearText = row.GetCell(12)?.ToString()?.Trim();
+                var doneMonthText = row.GetCell(13)?.ToString()?.Trim();
+                var parallelText = row.GetCell(14)?.ToString()?.Trim();
+                var execPlan = row.GetCell(15)?.ToString()?.Trim();
+                var remark = row.GetCell(16)?.ToString()?.Trim();
+
+                // === 2. 尋找基礎資料（不可自動建立） ===
+                var org = await _context.Organizations.FirstOrDefaultAsync(o => o.Name == orgName);
+                if (org == null) continue;
+
+                if (!DateTime.TryParse(dateStr, out var parsedDate)) continue;
+
+                var eventType = await _context.SuggestEventTypes.FirstOrDefaultAsync(x => x.Name == eventTypeName);
+                if (eventType == null) continue;
+
+                var suggestionType = await _context.SuggestionTypes.FirstOrDefaultAsync(x => x.Name == suggestTypeName);
+                if (suggestionType == null) continue;
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Nickname == committeeName);
+                if (user == null) continue;
+
+                // === 3. 取得既有 SuggestDate ===
+                var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(d =>
+                    d.Date == parsedDate &&
+                    d.OrganizationId == org.Id &&
+                    d.SuggestEventTypeId == eventType.Id
+                );
+
+                if (suggestDate == null) continue;
+
+                // === 4. 僅更新既有 SuggestReport，不新增 ===
+                var existingReport = await _context.SuggestReports.FirstOrDefaultAsync(r =>
+                    r.SuggestDateId == suggestDate.Id &&
+                    r.UserId == user.Id &&
+                    r.SuggestionContent == suggestionContent
+                );
+
+                if (existingReport == null) continue;
+
+                existingReport.RespDept       = respDept;
+                existingReport.ImproveDetails = improveDetails;
+                existingReport.Remark         = remark;
+                existingReport.ExecPlan       = execPlan;
+
+                existingReport.IsAdopted      = ParseEnum<IsAdopted>(isAdoptedText);
+                existingReport.Completed      = ParseEnum<IsAdopted>(completedText);
+                existingReport.ParallelExec   = ParseEnum<IsAdopted>(parallelText);
+
+                existingReport.Manpower       = int.TryParse(manpowerText, out var manpowerVal) ? manpowerVal : null;
+                existingReport.Budget         = decimal.TryParse(budgetText, out var budgetVal) ? budgetVal : null;
+                existingReport.DoneYear       = int.TryParse(doneYearText, out var yearVal) ? yearVal : null;
+                existingReport.DoneMonth      = int.TryParse(doneMonthText, out var monthVal) ? monthVal : null;
+
+                existingReport.UpdateAt       = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, "✅ 匯入成功");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ 匯入建議資料失敗");
+            return (false, $"匯入失敗：{ex.Message}");
+        }
+    }
+
+    // 泛型 Enum 解析（支援 IsAdopted 枚舉）
+    private TEnum? ParseEnum<TEnum>(string? input) where TEnum : struct
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        return Enum.TryParse<TEnum>(input.Trim(), out var value) ? value : null;
+    }
+    
+    public async Task<List<object>> GetReportsByOrganizationAsync(int organizationId)
+    {
+        var reports = await _context.SuggestReports
+            .Include(r => r.SuggestDate)
+            .ThenInclude(d => d.Organization)
+            .Include(r => r.SuggestionType)
+            .Include(r => r.User)
+            .Include(r => r.SuggestDate.SuggestEventType)
+            .Where(r => r.SuggestDate.OrganizationId == organizationId)
+            .OrderByDescending(r => r.SuggestDate.Date)
+            .ToListAsync();
+
+        var result = reports.Select(r => new
+        {
+            ID             = r.Id,
+            OrgName        = r.SuggestDate.Organization?.Name,
+            Date           = r.SuggestDate.Date.ToString("yyyy-MM-dd"),
+            EventType      = r.SuggestDate.SuggestEventType?.Name,
+            SuggestType    = r.SuggestionType?.Name,
+            UserName       = r.User?.Nickname,
+            Content        = r.SuggestionContent,
+            RespDept       = r.RespDept,
+            IsAdopted      = r.IsAdopted?.ToString(),
+            ImproveDetails = r.ImproveDetails,
+            Manpower       = r.Manpower,
+            Budget         = r.Budget,
+            Completed      = r.Completed?.ToString(),
+            DoneYear       = r.DoneYear,
+            DoneMonth      = r.DoneMonth,
+            ParallelExec   = r.ParallelExec?.ToString(),
+            ExecPlan       = r.ExecPlan,
+            Remark         = r.Remark
+        }).ToList<object>();
+
+        return result;
+    }
+    
+    public async Task<bool> UpdateSuggestReportsAsync(List<SuggestDto> reports)
+    {
+        if (reports == null || !reports.Any()) return false;
+
+        foreach (var dto in reports)
+        {
+            var report = await _context.SuggestReports.FindAsync(dto.Id);
+            if (report == null) continue;
+
+            report.RespDept = dto.RespDept;
+            report.IsAdopted = ParseEnum<IsAdopted>(dto.IsAdopted);
+            report.ImproveDetails = dto.ImproveDetails;
+            report.Manpower = dto.Manpower;
+            report.Budget = dto.Budget;
+            report.Completed = ParseEnum<IsAdopted>(dto.Completed);
+            report.DoneYear = dto.DoneYear;
+            report.DoneMonth = dto.DoneMonth;
+            report.ParallelExec = ParseEnum<IsAdopted>(dto.ParallelExec);
+            report.ExecPlan = dto.ExecPlan;
+            report.Remark = dto.Remark;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

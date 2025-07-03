@@ -6,6 +6,7 @@ using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
+
 public class KpiFieldOptionDto
 {
     public int Id { get; set; }
@@ -86,6 +87,9 @@ public class KpiDataDto
     public decimal? BaselineValue { get; set; }
     public decimal? TargetValue { get; set; }
     public int? Status { get; set; }
+    public double? ReportValue { get; set; }  // ✅ 新增：填報值
+    public DateTime? ReportUpdateAt { get; set; }  // 可選：更新時間
+    public string? Remarks { get; set; }
     
 }
 
@@ -189,6 +193,14 @@ public class KpiimportexcelDto
     public List<KpiReportDto> Reports { get; set; } = new();
 }
 
+public class KpiPreviewDto
+{
+    public string IndicatorName { get; set; }
+    public string DetailItemName { get; set; }
+    public double? ReportValue { get; set; }
+    public string Remarks { get; set; }
+    public string StatusText { get; set; } // 狀態顯示用
+}
 
 public interface IKpiService
 {
@@ -230,6 +242,18 @@ public interface IKpiService
     Task<List<KpiFieldOptionDto>> GetAllFieldsAsync();
     //讀取cycle資料
     Task<List<KpiCycle>> GetAllCyclesAsync();
+    
+    /// <summary>
+    /// 產生 KPI Excel 範本
+    /// </summary>
+    /// <param name="organizationId">公司／工廠 OrgId</param>
+    /// <returns>檔名與 Excel 位元組</returns>
+    Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId);
+
+    //預覽excel匯入廠商上傳的績效指標報告
+    Task<List<KpiPreviewDto>> ReadPreviewAsync(IFormFile file);
+    //送出excel匯入廠商上傳的績效指標報告
+    Task<(int inserted, int updated)> ImportAsync(IFormFile file, int organizationId, int year, string quarter);
 }
 
 public class KpiService:IKpiService
@@ -811,11 +835,11 @@ public class KpiService:IKpiService
             .Where(d =>
                     d.Organization.Id == organizationId &&
                     d.KpiCycle.StartYear <= year &&
-                    d.KpiCycle.EndYear >= year &&
-                    !d.KpiReports.Any(r =>
-                        r.Year == year &&
-                        r.Period == quarter &&
-                        r.Status == (ReportStatus)4) // ✅ 只要這筆 KPI 有定案報告就排除
+                    d.KpiCycle.EndYear >= year
+                    // !d.KpiReports.Any(r =>
+                    //     r.Year == year &&
+                    //     r.Period == quarter &&
+                    //     r.Status == (ReportStatus)4) // ✅ 只要這筆 KPI 有定案報告就排除
             )
             .Select(d => new KpiDataDto
             {
@@ -840,7 +864,22 @@ public class KpiService:IKpiService
                     .Where(r => r.Year == year && r.Period == quarter)
                     .OrderByDescending(r => r.UpdateAt) // 若有更新時間
                     .Select(r => (int?)r.Status)         // 改為 nullable
-                    .FirstOrDefault() ?? -1              // 若無資料時，明確標示為 -1
+                    .FirstOrDefault() ?? -1,              // 若無資料時，明確標示為 -1
+                ReportValue = d.KpiReports
+                .Where(r => r.Year == year && r.Period == quarter)
+                .OrderByDescending(r => r.UpdateAt)
+                .Select(r => (double?)r.KpiReportValue)  // 假設你的欄位叫 Value，請依實際調整
+                .FirstOrDefault(),
+                ReportUpdateAt = d.KpiReports
+                    .Where(r => r.Year == year && r.Period == quarter)
+                    .OrderByDescending(r => r.UpdateAt)
+                    .Select(r => (DateTime?)r.UpdateAt)
+                    .FirstOrDefault(),
+                Remarks = d.KpiReports
+                    .Where(r => r.Year == year && r.Period == quarter)
+                    .OrderByDescending(r => r.UpdateAt)
+                    .Select(r => r.Remarks)
+                    .FirstOrDefault()
 
             })
             .ToListAsync();
@@ -1546,5 +1585,184 @@ public class KpiService:IKpiService
                 EndYear = k.EndYear
             })
             .ToListAsync();
+    }
+    
+    private string GetQuarter(DateTime dt)
+    {
+        return dt.Month switch
+        {
+            <= 3 => "Q1",
+            <= 6 => "Q2",
+            <= 9 => "Q3",
+            _ => "Q4",
+        };
+    }
+    public async Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId)
+    {
+        var now = DateTime.Now;
+        var year = now.Year - 1911;
+        var quarter = GetQuarter(now);
+
+        var data = await GetKpiDataDtoByOrganizationIdAsync(organizationId, year, quarter);
+
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("KPI");
+
+        // 標題列
+        var headers = new[]
+        {
+            "指標ID", "類別", "領域", "英文領域", "指標名稱", "細項名稱",
+            "公司", "廠別", "單位", "基準年", "基準值", "目標值","狀態", "填報值", "備註"
+        };
+        var headerRow = sheet.CreateRow(0);
+        for (int i = 0; i < headers.Length; i++)
+        {
+            headerRow.CreateCell(i).SetCellValue(headers[i]);
+        }
+
+        var statusDict = new Dictionary<int, string>
+        {
+            { -1, "尚未填報" },
+            { 0, "草稿" },
+            { 1, "已送出" },
+            { 2, "已審閱" },
+            { 3, "已退回" },
+            { 4, "定案" }
+        };
+        
+        // 資料列
+        for (int i = 0; i < data.Count; i++)
+        {
+            var d = data[i];
+            var statusText = statusDict.TryGetValue((int)d.Status, out var label)
+                ? label
+                : $"未知({d.Status})";
+            var row = sheet.CreateRow(i + 1);
+            row.CreateCell(0).SetCellValue(d.KpiDataId);
+            row.CreateCell(1).SetCellValue(d.KpiCategoryName);
+            row.CreateCell(2).SetCellValue(d.Field);
+            row.CreateCell(3).SetCellValue(d.EnField);
+            row.CreateCell(4).SetCellValue(d.IndicatorName);
+            row.CreateCell(5).SetCellValue(d.DetailItemName);
+            row.CreateCell(6).SetCellValue(d.Company);
+            row.CreateCell(7).SetCellValue(d.ProductionSite ?? "");
+            row.CreateCell(8).SetCellValue(d.Unit);
+            row.CreateCell(9).SetCellValue(d.BaselineYear);
+            if (d.BaselineValue.HasValue)
+                row.CreateCell(10).SetCellValue((double)d.BaselineValue.Value);
+            else
+                row.CreateCell(10).SetCellValue(string.Empty);
+
+            if (d.TargetValue.HasValue)
+                row.CreateCell(11).SetCellValue((double)d.TargetValue.Value);
+            else
+                row.CreateCell(11).SetCellValue(string.Empty);
+            row.CreateCell(12).SetCellValue(statusText);
+            // ✅ 填報值（若為 null 則空）
+            if (d.ReportValue.HasValue)
+                row.CreateCell(13).SetCellValue((double)d.ReportValue.Value);
+            else
+                row.CreateCell(13).SetCellValue(string.Empty);
+            row.CreateCell(14).SetCellValue(d.Remarks ?? string.Empty);
+            
+        }
+
+        using var stream = new MemoryStream();
+        workbook.Write(stream);
+        var fileName = $"KPI_Template_{year}Q{quarter}.xlsx";
+        return (fileName, stream.ToArray());
+    }
+    
+    public async Task<List<KpiPreviewDto>> ReadPreviewAsync(IFormFile file)
+    {
+        using var stream = file.OpenReadStream();
+        var workbook = new XSSFWorkbook(stream);
+        var sheet = workbook.GetSheetAt(0);
+
+        var previewList = new List<KpiPreviewDto>();
+
+        for (int i = 1; i <= sheet.LastRowNum; i++)
+        {
+            var row = sheet.GetRow(i);
+            if (row == null) continue;
+
+            previewList.Add(new KpiPreviewDto
+            {
+                IndicatorName = row.GetCell(4)?.ToString(),
+                DetailItemName = row.GetCell(5)?.ToString(),
+                ReportValue = double.TryParse(row.GetCell(13)?.ToString(), out var val) ? val : null,
+                Remarks = row.GetCell(14)?.ToString(),
+                StatusText = row.GetCell(12)?.ToString()
+            });
+        }
+
+        return previewList;
+    }
+    
+    public async Task<(int inserted, int updated)> ImportAsync(
+        IFormFile file, int organizationId, int year, string quarter)
+    {
+        using var stream = file.OpenReadStream();
+        var workbook = new XSSFWorkbook(stream);
+        var sheet = workbook.GetSheetAt(0);
+
+        int inserted = 0;
+        int updated  = 0;
+
+        for (int i = 1; i <= sheet.LastRowNum; i++)
+        {
+            var row = sheet.GetRow(i);
+            if (row == null) continue;
+
+            // === 1. 解析欄位 ===
+            if (!int.TryParse(row.GetCell(0)?.ToString(), out int kpiDataId))
+                continue;                                         // 先防呆
+
+            decimal? reportValue = decimal.TryParse(
+                row.GetCell(13)?.ToString(), out var val) ? val : null;
+
+            string remarks = row.GetCell(14)?.ToString() ?? string.Empty;
+
+            // === 2. 取得現有報告（若有） ===
+            var existing = await _db.KpiReports.FirstOrDefaultAsync(r =>
+                r.KpiDataId == kpiDataId &&
+                r.Year      == year &&
+                r.Period    == quarter);
+
+            if (existing != null)
+            {
+                // === 3A. 更新 ===
+                existing.KpiReportValue = reportValue;
+                existing.Remarks = remarks;
+                existing.Status = 
+                    (reportValue.HasValue || !string.IsNullOrWhiteSpace(remarks))
+                        ? ReportStatus.Finalized
+                        : ReportStatus.Draft;
+                existing.UpdateAt = DateTime.Now;
+                updated++;
+            }
+            else
+            {
+                // === 3B. 新增 ===
+                var report = new KpiReport
+                {
+                    KpiDataId      = kpiDataId,
+                    Year           = year,
+                    Period         = quarter,
+                    KpiReportValue = reportValue,
+                    Remarks        = remarks,
+                    Status         = 
+                        (reportValue.HasValue || !string.IsNullOrWhiteSpace(remarks))
+                            ? ReportStatus.Finalized
+                            : ReportStatus.Draft,
+                    UpdateAt       = DateTime.Now
+                };
+                _db.KpiReports.Add(report);
+                inserted++;
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        return (inserted, updated);
     }
 }

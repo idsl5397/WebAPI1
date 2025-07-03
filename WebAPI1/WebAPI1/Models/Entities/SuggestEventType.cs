@@ -16,5 +16,5 @@ public class SuggestEventType
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
-    public virtual ICollection<SuggestData> SuggestDatas { get; set; } = new List<SuggestData>();
+    public virtual ICollection<SuggestDate> SuggestDates { get; set; } = new List<SuggestDate>();
 }

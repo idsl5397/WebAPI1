@@ -258,4 +258,34 @@ public class KpiController: ControllerBase
         var cycles = await _kpiService.GetAllCyclesAsync();
         return Ok(cycles);
     }
+    
+    [HttpGet("download-template")]
+    public async Task<IActionResult> DownloadTemplate([FromQuery] int organizationId)
+    {
+        if (organizationId <= 0)
+            return BadRequest("缺少有效的 organizationId");
+
+        var (fileName, content) = await _kpiService.GenerateTemplateAsync(organizationId);
+
+        return File(content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
+    
+    [HttpPost("fullpreview-for-report")]
+    public async Task<IActionResult> PreviewImportAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("未上傳檔案");
+
+        var previewList = await _kpiService.ReadPreviewAsync(file);
+        return Ok(previewList);
+    }
+    
+    [HttpPost("fullsubmit-for-report")]
+    public async Task<IActionResult> FullImportAsync(IFormFile file, int organizationId, int year, string quarter)
+    {
+        var (inserted, updated) = await _kpiService.ImportAsync(file, organizationId, year, quarter);
+        return Ok(new { inserted, updated });
+    }
 }

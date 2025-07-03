@@ -85,7 +85,7 @@ public class ReportService:IReportService
     
     public async Task<List<int>> GetOrganizationIdsWithSuggestDataAsync()
     {
-        var orgIds = await _context.SuggestDatas
+        var orgIds = await _context.SuggestDates
             .Where(s => s.OrganizationId != null)
             .Select(s => s.OrganizationId.Value)
             .Distinct()
@@ -96,13 +96,14 @@ public class ReportService:IReportService
     
     public async Task<List<KpiCompletionRateDto>> GetKpiCompletionRatesAsync(int? organizationId)
     {
-        var query = _context.SuggestDatas
+        var query = _context.SuggestReports
             .Include(s => s.KpiField)
+            .Include(s => s.SuggestDate) // 加入 SuggestDate 以取得 OrganizationId
             .Where(s => s.KpiFieldId != null && s.KpiField != null);
 
         if (organizationId.HasValue)
         {
-            query = query.Where(s => s.OrganizationId == organizationId.Value);
+            query = query.Where(s => s.SuggestDate.OrganizationId == organizationId.Value);
         }
 
         // 篩出只要 IsAdopted == 是 的資料，才列入分母
@@ -138,13 +139,14 @@ public class ReportService:IReportService
     
     public async Task<List<KpiFieldSuggestionCountDto>> GetSuggestionKpiFieldCountsAsync(int? organizationId)
     {
-        var query = _context.SuggestDatas
+        var query = _context.SuggestReports
             .Include(s => s.KpiField)
+            .Include(s => s.SuggestDate)
             .Where(s => s.KpiFieldId != null && s.KpiField != null);
 
         if (organizationId.HasValue)
         {
-            query = query.Where(s => s.OrganizationId == organizationId.Value);
+            query = query.Where(s => s.SuggestDate.OrganizationId == organizationId.Value);
         }
 
         var result = await query
@@ -164,22 +166,23 @@ public class ReportService:IReportService
     
     public async Task<List<CompanySuggestionStatsDto>> GetTop10CompanySuggestionStatsAsync(int? year = null, int? suggestionTypeId = null)
     {
-        var query = _context.SuggestDatas
-            .Include(s => s.Organization)
-            .Where(s => s.Organization != null);
+        var query = _context.SuggestReports
+            .Include(r => r.SuggestDate)
+            .ThenInclude(d => d.Organization)
+            .Where(r => r.SuggestDate.Organization != null);
 
         if (year.HasValue)
         {
-            query = query.Where(s => s.Date.Year == year.Value);
+            query = query.Where(r => r.SuggestDate.Date.Year == year.Value);
         }
 
         if (suggestionTypeId.HasValue)
         {
-            query = query.Where(s => s.SuggestionTypeId == suggestionTypeId.Value);
+            query = query.Where(r => r.SuggestionTypeId == suggestionTypeId.Value);
         }
 
         var result = await query
-            .GroupBy(s => new { s.Organization.Id, s.Organization.Name })
+            .GroupBy(r => new { r.SuggestDate.Organization.Id, r.SuggestDate.Organization.Name })
             .Select(g => new CompanySuggestionStatsDto
             {
                 CompanyName = g.Key.Name,
@@ -194,66 +197,64 @@ public class ReportService:IReportService
     
     public async Task<IReadOnlyList<CompanyCompletionRankingDto>> GetCompletionRankingAsync(int? topN = null)
     {
-        // 1. 先把 Adopted=是 的資料取出，並且 Completed 必須是 是/否
         var groupedQuery =
-            from s in _context.SuggestDatas.AsNoTracking()
-            join o in _context.Organizations.AsNoTracking()
-                on s.OrganizationId equals o.Id
-            where s.IsAdopted == IsAdopted.是               // ✅ 只統計「已參採」的建議
-                  && (s.Completed == IsAdopted.是              // ✅ Completed 只能是 是 或 否
-                      || s.Completed == IsAdopted.否)
-            group new { s, o } by new { o.Id, o.Name } into g
+            from report in _context.SuggestReports.AsNoTracking()
+            join date in _context.SuggestDates.AsNoTracking()
+                on report.SuggestDateId equals date.Id
+            join org in _context.Organizations.AsNoTracking()
+                on date.OrganizationId equals org.Id
+            where report.IsAdopted == IsAdopted.是
+                  && (report.Completed == IsAdopted.是 || report.Completed == IsAdopted.否)
+            group new { report, org } by new { org.Id, org.Name } into g
             select new
             {
                 g.Key.Id,
                 g.Key.Name,
-                CompletedYes = g.Count(x => x.s.Completed == IsAdopted.是),
-                CompletedNo  = g.Count(x => x.s.Completed == IsAdopted.否)
+                CompletedYes = g.Count(x => x.report.Completed == IsAdopted.是),
+                CompletedNo = g.Count(x => x.report.Completed == IsAdopted.否)
             };
 
-        // 2. 轉成 DTO、計算完成率、排序
         var ordered = groupedQuery
             .AsEnumerable()
             .Select(x => new CompanyCompletionRankingDto
             {
-                OrganizationId   = x.Id,
+                OrganizationId = x.Id,
                 OrganizationName = x.Name,
-                CompletedYes     = x.CompletedYes,
-                CompletedNo      = x.CompletedNo,
-                CompletionRate   = (x.CompletedYes + x.CompletedNo) == 0
+                CompletedYes = x.CompletedYes,
+                CompletedNo = x.CompletedNo,
+                CompletionRate = (x.CompletedYes + x.CompletedNo) == 0
                     ? 0
                     : (decimal)x.CompletedYes / (x.CompletedYes + x.CompletedNo)
             })
-            .OrderBy(r => r.CompletionRate)        // 完成率低 → 高
-            .ThenByDescending(r => r.CompletedNo); // 同率時未完成多者優先
+            .OrderBy(r => r.CompletionRate)
+            .ThenByDescending(r => r.CompletedNo);
 
-        // 3. 需求若有限制前 N 名
-        var final = topN.HasValue
-            ? ordered.Take(topN.Value)
-            : ordered;
-
-        return final.ToList();
+        return (topN.HasValue ? ordered.Take(topN.Value) : ordered).ToList();
     }
     
     public async Task<List<SuggestUncompletedDto>> GetUncompletedSuggestionsAsync(int organizationId)
     {
-        return await _context.SuggestDatas
+        return await _context.SuggestReports
             .AsNoTracking()
-            .Where(s =>
-                s.OrganizationId == organizationId &&
-                s.Completed == IsAdopted.否)
-            .Select(s => new SuggestUncompletedDto
+            .Include(r => r.SuggestDate)
+            .Include(r => r.SuggestDate.Organization)
+            .Include(r => r.SuggestDate.SuggestEventType)
+            .Include(r => r.KpiField)
+            .Where(r =>
+                r.SuggestDate.OrganizationId == organizationId &&
+                r.Completed == IsAdopted.否)
+            .Select(r => new SuggestUncompletedDto
             {
-                Id = s.Id,
-                Date = s.Date,
-                SuggestionContent = s.SuggestionContent,
-                KpiField = s.KpiField.field,
-                EventType = s.SuggestEventType.Name,
-                RespDept = s.RespDept,
-                Remark = s.Remark,
-                IsAdopted = s.IsAdopted.ToString()
+                Id = r.Id,
+                Date = r.SuggestDate.Date,
+                SuggestionContent = r.SuggestionContent,
+                KpiField = r.KpiField.field,
+                EventType = r.SuggestDate.SuggestEventType.Name,
+                RespDept = r.RespDept,
+                Remark = r.Remark,
+                IsAdopted = r.IsAdopted.ToString()
             })
-            .OrderByDescending(s => s.Date)
+            .OrderByDescending(r => r.Date)
             .ToListAsync();
     }
 }

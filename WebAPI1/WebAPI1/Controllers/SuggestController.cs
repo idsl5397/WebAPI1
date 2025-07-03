@@ -87,4 +87,57 @@ public class SuggestController: ControllerBase
             failCount = result.FailCount
         });
     }
+    
+    [HttpGet("download-template")]
+    public async Task<IActionResult> DownloadTemplate([FromQuery] int organizationId)
+    {
+        var (fileName, content) = await _suggestService.GenerateTemplateAsync(organizationId);
+        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+    
+    [HttpPost("fullpreview-for-report")]
+    public async Task<IActionResult> PreviewFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("請上傳檔案");
+
+        var previewData = await _suggestService.PreviewAsync(file);
+        return Ok(previewData);
+    }
+    
+    [HttpPost("fullsubmit-for-report")]
+    public async Task<IActionResult> ImportFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("請上傳檔案");
+
+        var (success, message) = await _suggestService.ImportAsync(file);
+
+        if (success)
+            return Ok(new { message });
+
+        return StatusCode(500, new { message });
+    }
+    
+    [HttpGet("selectOrg-for-report")]
+    public async Task<IActionResult> GetReportsByOrganization(int organizationId)
+    {
+        var data = await _suggestService.GetReportsByOrganizationAsync(organizationId);
+        return Ok(data);
+    }
+    
+    [HttpPut("update-report")]
+    public async Task<IActionResult> UpdateReport([FromBody] List<SuggestDto> reports)
+    {
+        _logger.LogInformation("收到更新筆數：{count}", reports.Count);
+        if (reports == null || !reports.Any())
+            return BadRequest(new { success = false, message = "請提供要更新的報告資料" });
+
+        var result = await _suggestService.UpdateSuggestReportsAsync(reports);
+
+        if (!result)
+            return BadRequest(new { success = false, message = "更新失敗，可能找不到對應的報告資料" });
+
+        return Ok(new { success = true });
+    }
 }

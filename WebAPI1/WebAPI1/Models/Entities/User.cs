@@ -168,5 +168,5 @@ public class User
     /// <summary>
     /// 導覽屬性：建議資料
     /// </summary>
-    public virtual ICollection<SuggestData> SuggestDatas { get; set; } = new List<SuggestData>();
+    public virtual ICollection<SuggestReport> SuggestReports { get; set; } = new List<SuggestReport>();
 }

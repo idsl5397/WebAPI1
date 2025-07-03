@@ -625,7 +625,7 @@ namespace WebAPI1.Migrations
                     b.ToTable("OrganizationTypes");
                 });
 
-            modelBuilder.Entity("WebAPI1.Entities.SuggestData", b =>
+            modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -633,89 +633,28 @@ namespace WebAPI1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal?>("Budget")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<byte?>("Completed")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("CompletedOther")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("date");
 
-                    b.Property<int?>("DoneMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DoneYear")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ExecPlan")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImproveDetails")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte?>("IsAdopted")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("IsAdoptedOther")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("KpiFieldId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Manpower")
-                        .HasColumnType("int");
-
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("int");
 
-                    b.Property<byte?>("ParallelExec")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("ParallelExecOther")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Remark")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RespDept")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("SuggestEventTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SuggestionContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("SuggestionTypeId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("KpiFieldId");
 
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("SuggestEventTypeId");
 
-                    b.HasIndex("SuggestionTypeId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("SuggestDatas");
+                    b.ToTable("SuggestDates");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestEventType", b =>
@@ -765,7 +704,6 @@ namespace WebAPI1.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ReportType")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -784,7 +722,92 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex(new[] { "UserInfoNameId" }, "IX_SuggestFiles_UserInfoNameId");
 
-                    b.ToTable("SuggestFile");
+                    b.ToTable("SuggestFiles");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.SuggestReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Budget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte?>("Completed")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("CompletedOther")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DoneMonth")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DoneYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExecPlan")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImproveDetails")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte?>("IsAdopted")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("IsAdoptedOther")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("KpiFieldId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Manpower")
+                        .HasColumnType("int");
+
+                    b.Property<byte?>("ParallelExec")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("ParallelExecOther")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Remark")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RespDept")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SuggestDateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SuggestionContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SuggestionTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KpiFieldId");
+
+                    b.HasIndex("SuggestDateId");
+
+                    b.HasIndex("SuggestionTypeId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SuggestReports");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestionType", b =>
@@ -1192,44 +1215,21 @@ namespace WebAPI1.Migrations
                     b.Navigation("ParentType");
                 });
 
-            modelBuilder.Entity("WebAPI1.Entities.SuggestData", b =>
+            modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
-                    b.HasOne("WebAPI1.Entities.KpiField", "KpiField")
-                        .WithMany("SuggestDatas")
-                        .HasForeignKey("KpiFieldId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("WebAPI1.Entities.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId");
 
                     b.HasOne("WebAPI1.Entities.SuggestEventType", "SuggestEventType")
-                        .WithMany("SuggestDatas")
+                        .WithMany("SuggestDates")
                         .HasForeignKey("SuggestEventTypeId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("WebAPI1.Entities.SuggestionType", "SuggestionType")
-                        .WithMany("SuggestDatas")
-                        .HasForeignKey("SuggestionTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI1.Entities.User", "User")
-                        .WithMany("SuggestDatas")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("KpiField");
-
                     b.Navigation("Organization");
 
                     b.Navigation("SuggestEventType");
-
-                    b.Navigation("SuggestionType");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestFile", b =>
@@ -1246,6 +1246,40 @@ namespace WebAPI1.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("UserInfoName");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.SuggestReport", b =>
+                {
+                    b.HasOne("WebAPI1.Entities.KpiField", "KpiField")
+                        .WithMany("SuggestReports")
+                        .HasForeignKey("KpiFieldId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("WebAPI1.Entities.SuggestDate", "SuggestDate")
+                        .WithMany("SuggestReports")
+                        .HasForeignKey("SuggestDateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebAPI1.Entities.SuggestionType", "SuggestionType")
+                        .WithMany("SuggestReports")
+                        .HasForeignKey("SuggestionTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("WebAPI1.Entities.User", "User")
+                        .WithMany("SuggestReports")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("KpiField");
+
+                    b.Navigation("SuggestDate");
+
+                    b.Navigation("SuggestionType");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.User", b =>
@@ -1306,7 +1340,7 @@ namespace WebAPI1.Migrations
                 {
                     b.Navigation("KpiItems");
 
-                    b.Navigation("SuggestDatas");
+                    b.Navigation("SuggestReports");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiItem", b =>
@@ -1341,21 +1375,26 @@ namespace WebAPI1.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
+                {
+                    b.Navigation("SuggestReports");
+                });
+
             modelBuilder.Entity("WebAPI1.Entities.SuggestEventType", b =>
                 {
-                    b.Navigation("SuggestDatas");
+                    b.Navigation("SuggestDates");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestionType", b =>
                 {
-                    b.Navigation("SuggestDatas");
+                    b.Navigation("SuggestReports");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.User", b =>
                 {
                     b.Navigation("PasswordHistory");
 
-                    b.Navigation("SuggestDatas");
+                    b.Navigation("SuggestReports");
 
                     b.Navigation("UserRoles");
                 });

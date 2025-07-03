@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebAPI1.Entities;
 
-
 public enum IsAdopted : byte
 {
     否 = 0,
@@ -15,29 +14,23 @@ public enum IsAdopted : byte
     詳備註 = 3
 }
 
-public class SuggestData
+public class SuggestReport
 {
     [Key]
     public int Id { get; set; }
 
-    //建議日期
-    [Column(TypeName = "date")]
-    public DateTime Date { get; set; }
+    // 督導關聯
+    public int SuggestDateId { get; set; }
+    [ForeignKey("SuggestDateId")]
+    public virtual SuggestDate SuggestDate { get; set; }
     
-    public string SuggestionContent { get; set; } // 建議內容
-
-    // 會議/活動類別
-    public int SuggestEventTypeId { get; set; }
-
-    [ForeignKey("SuggestEventTypeId")]
-    public SuggestEventType SuggestEventType { get; set; }
-
     // 建議類別
     public int SuggestionTypeId { get; set; }
 
     [ForeignKey("SuggestionTypeId")]
     public SuggestionType SuggestionType { get; set; }
     
+    public string SuggestionContent { get; set; } // 建議內容
     
     [Column(TypeName = "tinyint")] // 是否參採
     public IsAdopted? IsAdopted { get; set; }
@@ -65,22 +58,16 @@ public class SuggestData
     
     public string? Remark { get; set; } // 平行展開執行規劃
     
-    public DateTime? CreatedAt { get; set; }
-
-    public DateTime? UpdateAt { get; set; }
-    
-    public int? OrganizationId { get; set; }
-    [ForeignKey("OrganizationId")]
-    public virtual Organization Organization { get; set; }
-    
     public int? KpiFieldId { get; set; }
     
     [ForeignKey("KpiFieldId")]
-    [InverseProperty("SuggestDatas")]
     public virtual KpiField? KpiField { get; set; }
     
     public Guid UserId { get; set; } //委員使用者
-
     [ForeignKey("UserId")]
     public virtual User? User { get; set; }
+    
+    public DateTime? CreatedAt { get; set; }
+
+    public DateTime? UpdateAt { get; set; }
 }
