@@ -119,6 +119,3 @@ app.UseCors("AllowAll");
 app.MapControllers();
 
 app.Run();
-
-
-Console.WriteLine();
