@@ -11,9 +11,13 @@ using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using WebAPI1.Context;
 
+var options  = new WebApplicationOptions
+{
+    WebRootPath = "wwwroot"  // 這樣才是正確設定 web root 的方式
+};
 
-var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseWebRoot("wwwroot");
+var builder = WebApplication.CreateBuilder(options);
+
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 // Add services to the container.
