@@ -1,25 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
 public interface IImprovementService
 {
     Task<List<string>> GetUploadedFilesAsync(int orgId);
-    Task<bool> SubmitReportAsync(int orgId, int year, int quarter, IFormFile file, int userId);
+    Task<bool> SubmitReportAsync(int orgId, int year, int quarter, IFormFile file, Guid userId);
+    Task<bool> DeleteFileAsync(string fileName);
 }
 
 public class ImprovementService:IImprovementService
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<ImprovementService> _logger;
     private readonly IWebHostEnvironment _env;
     
     public ImprovementService(
-        isha_sys_devContext db,
+        ISHAuditDbcontext db,
         ILogger<ImprovementService> logger,
         IWebHostEnvironment env)
     {
@@ -36,7 +37,7 @@ public class ImprovementService:IImprovementService
             .ToListAsync();
     }
 
-    public async Task<bool> SubmitReportAsync(int orgId, int year, int quarter, IFormFile file, int userId)
+    public async Task<bool> SubmitReportAsync(int orgId, int year, int quarter, IFormFile file, Guid userId)
     {
         var org = await _db.Organizations.FindAsync(orgId);
         if (org == null) throw new Exception("無效的組織 ID");
@@ -69,9 +70,9 @@ public class ImprovementService:IImprovementService
             Quarter = quarter,
             ReportName = fileName,
             ReportType = reportType,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = tool.GetTaiwanNow(),
             OrganizationId = orgId,
-            UserInfoNameId = userId
+            UserId = userId
         };
 
         _db.SuggestFiles.Add(newFile);
@@ -80,4 +81,31 @@ public class ImprovementService:IImprovementService
         return true;
     }
     
+    public async Task<bool> DeleteFileAsync(string fileName)
+    {
+        var fileRecord = await _db.SuggestFiles.FirstOrDefaultAsync(f => f.ReportName == fileName);
+        if (fileRecord == null) return false;
+
+        try
+        {
+            // Step 1: 刪除資料庫紀錄
+            _db.SuggestFiles.Remove(fileRecord);
+            await _db.SaveChangesAsync();
+
+            // Step 2: 嘗試刪除檔案
+            var uploadPath = Path.Combine(_env.WebRootPath, "uploads");
+            var filePath = Path.Combine(uploadPath, fileName);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // 你也可以在這裡 log 錯誤
+            throw new Exception($"刪除過程出現錯誤：{ex.Message}");
+        }
+    }
 }

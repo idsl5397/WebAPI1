@@ -6,8 +6,8 @@ using Isopoh.Cryptography.Argon2;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers
@@ -23,11 +23,11 @@ namespace WebAPI1.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly isha_sys_devContext _db;
+        private readonly ISHAuditDbcontext _db;
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
 
-        public UserController(isha_sys_devContext db, IConfiguration configuration, IUserService userService)
+        public UserController(ISHAuditDbcontext db, IConfiguration configuration, IUserService userService)
         {
             _db = db;
             _configuration = configuration;
@@ -85,12 +85,12 @@ namespace WebAPI1.Controllers
             //     Unit = "測試部門",
             //     Position = "測試職位",
             //     RegistrationDomain = "example.com",
-            //     CreatedAt = DateTime.UtcNow,
-            //     UpdatedAt = DateTime.UtcNow,
+            //     CreatedAt = tool.GetTaiwanNow(),
+            //     UpdatedAt = tool.GetTaiwanNow(),
             //     IsActive = true,
             //     LastLoginAt = null,
-            //     PasswordChangedAt = DateTime.UtcNow,
-            //     PasswordExpiresAt = DateTime.UtcNow.AddMonths(3),
+            //     PasswordChangedAt = tool.GetTaiwanNow(),
+            //     PasswordExpiresAt = tool.GetTaiwanNow().AddMonths(3),
             //     ForceChangePassword = false,
             //     PasswordFailedAttempts = 0,
             //     PasswordLockedUntil = null,

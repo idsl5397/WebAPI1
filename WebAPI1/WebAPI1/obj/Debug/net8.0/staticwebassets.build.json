@@ -1,12 +1,228 @@
 {
   "Version": 1,
-  "Hash": "/bPavkFbmJW6MQBLQoMsynEmihcOeuu57HgRzTjngK0=",
+  "Hash": "BpkK2jT+x0OUHD43ud3kdNkYCJP5qfI8B2Jb+xQraws=",
   "Source": "WebAPI1",
   "BasePath": "_content/WebAPI1",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": [],
-  "Endpoints": []
+  "DiscoveryPatterns": [
+    {
+      "Name": "WebAPI1\\wwwroot",
+      "Source": "WebAPI1",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4#[.{fingerprint}]?.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "ioc5wr2mwo",
+      "Integrity": "cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf"
+    },
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3#[.{fingerprint}]?.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "ioc5wr2mwo",
+      "Integrity": "cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.ioc5wr2mwo.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "ioc5wr2mwo"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.ioc5wr2mwo.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "ioc5wr2mwo"
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    }
+  ]
 }

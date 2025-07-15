@@ -542,3 +542,4 @@ D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\Microsoft
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\Pipelines.Sockets.Unofficial.dll
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\StackExchange.Redis.dll
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\NReJSON.dll
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\WebAPI1.staticwebassets.runtime.json

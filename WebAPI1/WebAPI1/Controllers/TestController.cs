@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Controllers;
 
 public class TestController: ControllerBase
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     
-    public TestController(isha_sys_devContext db)
+    public TestController(ISHAuditDbcontext db)
     {
         _db = db;
     }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -24,7 +25,7 @@ public class UserRole
     /// <summary>
     /// 分配時間
     /// </summary>
-    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+    public DateTime AssignedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 分配人ID

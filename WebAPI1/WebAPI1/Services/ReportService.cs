@@ -6,9 +6,34 @@ using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Services;
+
+public class UnmetKpiDto
+{
+    public int Id { get; set; }
+    public int Year { get; set; }
+    public string Period { get; set; }
+    public string KpiName { get; set; }
+    public string KpiDetialName { get; set; }
+    public decimal Actual { get; set; }
+    public decimal Target { get; set; }
+    public string Unit { get; set; }
+    public string Field { get; set; }
+}
+
+public class CompanyKpiRateDto
+{
+    public int? OrganizationId { get; set; }
+    public string OrganizationName { get; set; }
+    public int MetCount { get; set; }
+    public int TotalCount { get; set; }
+    public double Rate { get; set; } // 比例 0~1
+    
+    public string Field { get; set; }
+    public int Year { get; set; }
+    public string Quarter { get; set; }
+}
 
 public class KpiCompletionRateDto
 {
@@ -70,22 +95,36 @@ public interface IReportService
     /// </summary>
     Task<IReadOnlyList<CompanyCompletionRankingDto>> GetCompletionRankingAsync(int? topN = null);
     Task<List<SuggestUncompletedDto>> GetUncompletedSuggestionsAsync(int organizationId);
+
+    Task<List<CompanyKpiRateDto>> GetKpiRankingAsync(
+        int? startYear = null,
+        int? endYear = null,
+        string? startQuarter = null,
+        string? endQuarter = null,
+        string? fieldName = null);
+    Task<List<UnmetKpiDto>> GetUnmetKpisAsync(
+        int organizationId,
+        int? startYear = null,
+        int? endYear = null,
+        string? startQuarter = null,
+        string? endQuarter = null,
+        string? fieldName = null);
 }
 
 public class ReportService:IReportService
 {
-    private readonly isha_sys_devContext _context;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<ReportService> _logger;
     
-    public ReportService(isha_sys_devContext context,ILogger<ReportService> logger)
+    public ReportService(ISHAuditDbcontext context,ILogger<ReportService> logger)
     {
-        _context = context;
+        _db = context;
         _logger = logger;
     }
     
     public async Task<List<int>> GetOrganizationIdsWithSuggestDataAsync()
     {
-        var orgIds = await _context.SuggestDates
+        var orgIds = await _db.SuggestDates
             .Where(s => s.OrganizationId != null)
             .Select(s => s.OrganizationId.Value)
             .Distinct()
@@ -96,7 +135,7 @@ public class ReportService:IReportService
     
     public async Task<List<KpiCompletionRateDto>> GetKpiCompletionRatesAsync(int? organizationId)
     {
-        var query = _context.SuggestReports
+        var query = _db.SuggestReports
             .Include(s => s.KpiField)
             .Include(s => s.SuggestDate) // 加入 SuggestDate 以取得 OrganizationId
             .Where(s => s.KpiFieldId != null && s.KpiField != null);
@@ -139,7 +178,7 @@ public class ReportService:IReportService
     
     public async Task<List<KpiFieldSuggestionCountDto>> GetSuggestionKpiFieldCountsAsync(int? organizationId)
     {
-        var query = _context.SuggestReports
+        var query = _db.SuggestReports
             .Include(s => s.KpiField)
             .Include(s => s.SuggestDate)
             .Where(s => s.KpiFieldId != null && s.KpiField != null);
@@ -166,7 +205,7 @@ public class ReportService:IReportService
     
     public async Task<List<CompanySuggestionStatsDto>> GetTop10CompanySuggestionStatsAsync(int? year = null, int? suggestionTypeId = null)
     {
-        var query = _context.SuggestReports
+        var query = _db.SuggestReports
             .Include(r => r.SuggestDate)
             .ThenInclude(d => d.Organization)
             .Where(r => r.SuggestDate.Organization != null);
@@ -198,10 +237,10 @@ public class ReportService:IReportService
     public async Task<IReadOnlyList<CompanyCompletionRankingDto>> GetCompletionRankingAsync(int? topN = null)
     {
         var groupedQuery =
-            from report in _context.SuggestReports.AsNoTracking()
-            join date in _context.SuggestDates.AsNoTracking()
+            from report in _db.SuggestReports.AsNoTracking()
+            join date in _db.SuggestDates.AsNoTracking()
                 on report.SuggestDateId equals date.Id
-            join org in _context.Organizations.AsNoTracking()
+            join org in _db.Organizations.AsNoTracking()
                 on date.OrganizationId equals org.Id
             where report.IsAdopted == IsAdopted.是
                   && (report.Completed == IsAdopted.是 || report.Completed == IsAdopted.否)
@@ -234,7 +273,7 @@ public class ReportService:IReportService
     
     public async Task<List<SuggestUncompletedDto>> GetUncompletedSuggestionsAsync(int organizationId)
     {
-        return await _context.SuggestReports
+        return await _db.SuggestReports
             .AsNoTracking()
             .Include(r => r.SuggestDate)
             .Include(r => r.SuggestDate.Organization)
@@ -256,5 +295,243 @@ public class ReportService:IReportService
             })
             .OrderByDescending(r => r.Date)
             .ToListAsync();
+    }
+    
+    public async Task<List<CompanyKpiRateDto>> GetKpiRankingAsync(
+    int? startYear = null,
+    int? endYear = null,
+    string? startQuarter = null,
+    string? endQuarter = null,
+    string? fieldName = null)
+    {
+        int QuarterOrder(string q) => q switch
+        {
+            "Q1" => 1, "Q2" => 2, "Q3" => 3, "Q4" => 4, "Y" => 5, _ => 0
+        };
+
+        bool IsReportInRange(KpiReport r) =>
+            r.Status == ReportStatus.Finalized &&
+            (!startYear.HasValue || r.Year > startYear ||
+                (r.Year == startYear && (string.IsNullOrEmpty(startQuarter) || QuarterOrder(r.Period) >= QuarterOrder(startQuarter)))) &&
+            (!endYear.HasValue || r.Year < endYear ||
+                (r.Year == endYear && (string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter))));
+
+        var query = _db.KpiDatas
+            .Include(d => d.DetailItem.KpiItem.KpiField)
+            .Include(d => d.KpiReports)
+            .Include(d => d.Organization)
+            .Include(d => d.KpiCycle)
+            .Include(d => d.DetailItem.KpiItem.KpiItemNames)
+            .Include(d => d.DetailItem.KpiDetailItemNames)
+            .Where(d => d.DetailItem != null && d.DetailItem.IsIndicator == true);
+
+        if (!string.IsNullOrWhiteSpace(fieldName))
+        {
+            query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
+        }
+
+        var rawData = await query.ToListAsync();
+        
+        var filtered = rawData
+            .Where(d => d.KpiReports.Any(IsReportInRange)) // 先過濾出至少有一筆報告符合區間的
+            .GroupBy(d => new { d.OrganizationId, d.DetailItemId }) // ✅ 加上 OrganizationId
+            .Select(g =>
+            {
+                // 該組織該指標的最新循環資料
+                var latestCycleData = g
+                    .OrderByDescending(d => d.KpiCycle.StartYear)
+                    .FirstOrDefault();
+
+                var latestReport = latestCycleData?.KpiReports
+                    .Where(IsReportInRange)
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r => QuarterOrder(r.Period))
+                    .FirstOrDefault();
+
+                if (latestCycleData == null || latestReport == null)
+                    return null;
+
+                return new
+                {
+                    Data = latestCycleData,
+                    LatestReport = latestReport
+                };
+            })
+            .Where(x => x != null)
+            .ToList();
+        
+        var companyGroups = filtered.Select(x =>
+        {
+            var d = x.Data;
+            var latestReport = x.LatestReport;
+
+            var itemName = d.DetailItem.KpiItem.KpiItemNames
+                .OrderByDescending(n => n.StartYear)
+                .FirstOrDefault()?.Name ?? "(無名稱)";
+
+            var detailItemName = d.DetailItem.KpiDetailItemNames
+                .OrderByDescending(n => n.StartYear)
+                .FirstOrDefault()?.Name ?? "(無名稱)";
+
+            return new
+            {
+                d.Id,
+                d.DetailItemId,
+                d.OrganizationId,
+                Company = d.Organization.Name,
+                Field = d.DetailItem.KpiItem.KpiField.field,
+                IndicatorName = itemName,
+                DetailItemName = detailItemName,
+                Year = latestReport?.Year,
+                Quarter = latestReport?.Period,
+                Actual = latestReport?.KpiReportValue,
+                Target = d.TargetValue,
+                Operator = d.DetailItem.ComparisonOperator,
+                IsIndicator = d.DetailItem.IsIndicator
+            };
+        }).ToList();
+        
+        var result = filtered
+            .GroupBy(x => new { x.Data.OrganizationId, x.Data.Organization.Name })
+            .Select(g =>
+            {
+                int total = g.Count();
+
+                int unmet = g.Count(x =>
+                {
+                    var actual = x.LatestReport?.KpiReportValue;
+                    var target = x.Data.TargetValue;
+                    var op = x.Data.DetailItem.ComparisonOperator;
+
+                    if (!actual.HasValue || !target.HasValue) return false;
+
+                    return op switch
+                    {
+                        ">=" => actual < target,
+                        "<=" => actual > target,
+                        ">" => actual <= target,
+                        "<" => actual >= target,
+                        "=" or "==" => actual != target,
+                        _ => false
+                    };
+                });
+
+                Console.WriteLine($"\n📊 OrgId={g.Key.OrganizationId}：Total={total}, Unmet={unmet}");
+
+                return new CompanyKpiRateDto
+                {
+                    OrganizationId = g.Key.OrganizationId,
+                    OrganizationName = g.Key.Name,
+                    MetCount = total - unmet,          // ✅ 若你還是想看達標筆數，可保留這行
+                    TotalCount = total,
+                    Rate = total > 0 ? Math.Round((double)(total - unmet) / total, 4) : 0.0, // ✅ 未達標比例
+                    
+                    Field = g.First().Data.DetailItem.KpiItem.KpiField.field,
+                    Year = g.First().LatestReport.Year,
+                    Quarter = g.First().LatestReport.Period
+                };
+            })
+            .OrderBy(x => x.Rate) // 🔁 若你想看到達標多的排前面，可改成 ascending
+            .ToList();
+
+        return result;
+    }
+
+    
+    public async Task<List<UnmetKpiDto>> GetUnmetKpisAsync(
+    int organizationId,
+    int? startYear = null,
+    int? endYear = null,
+    string? startQuarter = null,
+    string? endQuarter = null,
+    string? fieldName = null)
+    {
+        int QuarterOrder(string q) => q switch
+        {
+            "Q1" => 1, "Q2" => 2, "Q3" => 3, "Q4" => 4, "Y" => 5, _ => 0
+        };
+
+        bool IsReportInRange(KpiReport r) =>
+            r.Status == ReportStatus.Finalized &&
+            (!startYear.HasValue || r.Year > startYear ||
+                (r.Year == startYear && (string.IsNullOrEmpty(startQuarter) || QuarterOrder(r.Period) >= QuarterOrder(startQuarter)))) &&
+            (!endYear.HasValue || r.Year < endYear ||
+                (r.Year == endYear && (string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter))));
+
+        var query = _db.KpiDatas
+            .Include(d => d.DetailItem.KpiItem.KpiField)
+            .Include(d => d.DetailItem.KpiItem.KpiItemNames)
+            .Include(d => d.DetailItem.KpiDetailItemNames)
+            .Include(d => d.Organization)
+            .Include(d => d.KpiCycle)
+            .Include(d => d.KpiReports)
+            .Where(d =>
+                d.OrganizationId == organizationId &&
+                d.DetailItem.IsIndicator == true &&
+                d.KpiReports.Any(r => r.Status == ReportStatus.Finalized));
+
+        if (!string.IsNullOrWhiteSpace(fieldName))
+        {
+            query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
+        }
+
+        var rawData = await query.ToListAsync();
+        
+        var latestData = rawData
+            .GroupBy(d => d.DetailItemId)
+            .Select(g =>
+            {
+                var latestCycle = g.OrderByDescending(x => x.KpiCycle.StartYear).FirstOrDefault();
+                var latestReport = latestCycle?.KpiReports
+                    .Where(IsReportInRange)
+                    .OrderByDescending(r => r.Year)
+                    .ThenByDescending(r => QuarterOrder(r.Period))
+                    .FirstOrDefault();
+
+                return new
+                {
+                    Data = latestCycle,
+                    Report = latestReport
+                };
+            })
+            .Where(x => x.Data != null && x.Report != null)
+            .ToList();
+
+        var unmet = latestData
+            .Where(x =>
+            {
+                var actual = x.Report.KpiReportValue;
+                var target = x.Data.TargetValue;
+                var op = x.Data.DetailItem.ComparisonOperator;
+
+                if (!actual.HasValue || !target.HasValue) return false;
+
+                return op switch
+                {
+                    ">=" => actual < target,
+                    "<=" => actual > target,
+                    ">" => actual <= target,
+                    "<" => actual >= target,
+                    "=" or "==" => actual != target,
+                    _ => false
+                };
+            })
+            .Select(x => new UnmetKpiDto
+            {
+                Id = x.Data.Id,
+                Year = x.Report.Year,
+                Period = x.Report.Period,
+                KpiName = x.Data.DetailItem.KpiItem.KpiItemNames
+                    .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name ?? "(無名稱)",
+                KpiDetialName = x.Data.DetailItem.KpiDetailItemNames
+                    .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name ?? "(無名稱)",
+                Actual = x.Report.KpiReportValue ?? 0,
+                Target = x.Data.TargetValue ?? 0,
+                Unit = x.Data.DetailItem.Unit ?? "",
+                Field = x.Data.DetailItem.KpiItem.KpiField.field ?? "(未分類)"
+            })
+            .ToList();
+
+        return unmet;
     }
 }

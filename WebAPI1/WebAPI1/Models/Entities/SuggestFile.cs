@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebAPI1.Entities;
 
-[Index("UserInfoNameId", Name = "IX_SuggestFiles_UserInfoNameId")]
 public class SuggestFile
 {
     [Key]
@@ -30,8 +29,8 @@ public class SuggestFile
     [ForeignKey("OrganizationId")]
     public virtual Organization Organization { get; set; }
 
-    public int? UserInfoNameId { get; set; } //上傳人員
+    public Guid? UserId { get; set; } //上傳人員
 
-    [ForeignKey("UserInfoNameId")]
-    public virtual UserInfoName? UserInfoName { get; set; }
+    [ForeignKey("UserId")]
+    public virtual User? User { get; set; }
 }

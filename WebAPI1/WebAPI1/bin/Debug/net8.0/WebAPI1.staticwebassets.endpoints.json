@@ -1,5 +1,170 @@
 {
   "Version": 1,
   "ManifestType": "Build",
-  "Endpoints": []
+  "Endpoints": [
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.ioc5wr2mwo.pdf",
+      "AssetFile": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "ioc5wr2mwo"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf"
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "AssetFile": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.ioc5wr2mwo.pdf",
+      "AssetFile": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "ioc5wr2mwo"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        },
+        {
+          "Name": "label",
+          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf"
+        }
+      ]
+    },
+    {
+      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "AssetFile": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3696838"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
+        }
+      ]
+    }
+  ]
 }

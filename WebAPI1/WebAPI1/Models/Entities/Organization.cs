@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -73,12 +74,12 @@ public class Organization
     /// <summary>
     /// 創建時間
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 更新時間
     /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 導覽屬性：組織類型
@@ -107,4 +108,9 @@ public class Organization
     /// 導覽屬性：組織域名
     /// </summary>
     public virtual ICollection<OrganizationDomain> Domains { get; set; } = new List<OrganizationDomain>();
+    
+    /// <summary>
+    /// 導覽屬性：密碼策略
+    /// </summary>
+    public virtual ICollection<PasswordPolicy> PasswordPolicies { get; set; } = new List<PasswordPolicy>();
 }

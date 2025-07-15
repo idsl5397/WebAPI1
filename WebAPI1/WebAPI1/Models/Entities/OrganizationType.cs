@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -37,7 +38,7 @@ public class OrganizationType
     /// <summary>
     /// 創建時間
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 導覽屬性：此類型的組織
@@ -57,5 +58,10 @@ public class OrganizationType
     /// 導覽屬性：組織使用者
     /// </summary>
     public virtual ICollection<User> Users { get; set; } = new List<User>();
+    
+    /// <summary>
+    /// 導覽屬性：密碼策略
+    /// </summary>
+    public virtual ICollection<PasswordPolicy> PasswordPolicies { get; set; } = new List<PasswordPolicy>();
    
 }

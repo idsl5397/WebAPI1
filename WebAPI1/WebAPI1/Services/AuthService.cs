@@ -35,7 +35,7 @@ public class AuthService: IAuthService
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(300), // ⏱ 建議 AccessToken 有效期短
+            expires: tool.GetTaiwanNow().AddMinutes(300), // ⏱ 建議 AccessToken 有效期短
             signingCredentials: creds
         );
 
@@ -57,7 +57,7 @@ public class AuthService: IAuthService
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: tool.GetTaiwanNow().AddDays(7),
             signingCredentials: creds
         );
 
@@ -108,7 +108,7 @@ public class AuthService: IAuthService
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
                 Path = "/",
-                Expires = DateTime.UtcNow.AddDays(7)
+                Expires = tool.GetTaiwanNow().AddDays(7)
             });
         }
     }

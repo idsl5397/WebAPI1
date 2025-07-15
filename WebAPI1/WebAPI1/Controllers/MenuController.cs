@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using Microsoft.AspNetCore.Authorization;
 using WebAPI1.Authorization;
+using WebAPI1.Context;
 
 namespace WebAPI1.Controllers
 {
@@ -14,9 +14,9 @@ namespace WebAPI1.Controllers
     [RequireAccessToken]
     public class MenuController : ControllerBase
     {
-        private readonly isha_sys_devContext _db;
+        private readonly ISHAuditDbcontext _db;
 
-        public MenuController(isha_sys_devContext db)
+        public MenuController(ISHAuditDbcontext db)
         {
             _db = db;
         }

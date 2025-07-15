@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers;
@@ -10,11 +10,11 @@ namespace WebAPI1.Controllers;
 [Route("[controller]")]
 public class ReportController: ControllerBase
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<ReportController> _logger;
     private readonly IReportService _reportService;
     
-    public ReportController(ILogger<ReportController> logger,isha_sys_devContext db,IReportService reportService)
+    public ReportController(ILogger<ReportController> logger,ISHAuditDbcontext db,IReportService reportService)
     {
         _db = db;
         _logger = logger;
@@ -64,6 +64,44 @@ public class ReportController: ControllerBase
     public async Task<ActionResult<List<SuggestUncompletedDto>>> GetUncompletedSuggestions([FromQuery] int organizationId)
     {
         var result = await _reportService.GetUncompletedSuggestionsAsync(organizationId);
+        return Ok(result);
+    }
+    
+    /// <summary>
+    /// 取得公司 KPI 達成率排行榜
+    /// </summary>
+    [HttpGet("kpi-ranking")]
+    public async Task<IActionResult> GetKpiRanking(
+        [FromQuery] int? startYear,
+        [FromQuery] int? endYear,
+        [FromQuery] string? startQuarter,
+        [FromQuery] string? endQuarter,
+        [FromQuery] string? fieldName
+    )
+    {
+        var result = await _reportService.GetKpiRankingAsync(
+            startYear: startYear,
+            endYear: endYear,
+            startQuarter: startQuarter,
+            endQuarter: endQuarter,
+            fieldName: fieldName
+        );
+
+        return Ok(result);
+    }
+    
+    [HttpGet("unmet-kpi")]
+    public async Task<IActionResult> GetUnmetKpis(
+        int organizationId,
+        int? startYear = null,
+        int? endYear = null,
+        string? startQuarter = null,
+        string? endQuarter = null,
+        string? fieldName = null)
+    {
+        var result = await _reportService.GetUnmetKpisAsync(
+            organizationId, startYear, endYear, startQuarter, endQuarter, fieldName);
+
         return Ok(result);
     }
 }

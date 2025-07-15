@@ -38,6 +38,7 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<SuggestDate> SuggestDates { get; set; }
     public virtual DbSet<SuggestReport> SuggestReports { get; set; }
     public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
+    public virtual DbSet<PasswordPolicy> PasswordPolicy { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -103,10 +104,10 @@ public partial class ISHAuditDbcontext : DbContext
             .HasForeignKey(d => d.OrganizationId);
         
         // UserInfo 與 SuggestFile 關聯設定
-        modelBuilder.Entity<UserInfoName>()
+        modelBuilder.Entity<User>()
             .HasMany(c => c.SuggestFiles)
-            .WithOne(s => s.UserInfoName)
-            .HasForeignKey(s => s.UserInfoNameId)
+            .WithOne(s => s.User)
+            .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.NoAction);
         
         // Menu 與 MenuRole 關聯設定
@@ -191,6 +192,13 @@ public partial class ISHAuditDbcontext : DbContext
                 .HasForeignKey(u => u.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // User與PasswordPolicy的關聯
+            entity.HasOne(u => u.PasswordPolicy)
+                .WithMany(p => p.Users)
+                .HasForeignKey(u => u.PasswordPolicyId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+            
             // 用戶名唯一索引
             entity.HasIndex(u => new { u.Username, u.Email }).IsUnique();
 
@@ -225,6 +233,33 @@ public partial class ISHAuditDbcontext : DbContext
             .WithMany(u => u.UserRoles)
             .HasForeignKey(ur => ur.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+        
+        // PasswordPolicy表關聯配置
+        modelBuilder.Entity<PasswordPolicy>(entity =>
+        {
+            // PasswordPolicy與Organization的關聯
+            entity.HasOne(pp => pp.Organization)
+                .WithMany(o => o.PasswordPolicies)
+                .HasForeignKey(pp => pp.OrganizationId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+        
+            // PasswordPolicy與OrganizationType的關聯
+            entity.HasOne(pp => pp.OrganizationType)
+                .WithMany(ot => ot.PasswordPolicies)
+                .HasForeignKey(pp => pp.OrganizationTypeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+        
+            // 預設策略索引（用於快速查找）
+            entity.HasIndex(pp => pp.IsDefault);
+            
+            // 組織策略索引
+            entity.HasIndex(pp => pp.OrganizationId);
+            
+            // 組織類型策略索引
+            entity.HasIndex(pp => pp.OrganizationTypeId);
+        });
         
 //--------------------     Kpi    --------------------
 

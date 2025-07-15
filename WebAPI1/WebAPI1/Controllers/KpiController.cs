@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers;
@@ -9,11 +9,11 @@ namespace WebAPI1.Controllers;
 [Route("[controller]")]
 public class KpiController: ControllerBase
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<KpiController> _logger;
     private readonly IKpiService _kpiService;
 
-    public KpiController(isha_sys_devContext db, ILogger<KpiController> logger, IKpiService kpiService)
+    public KpiController(ISHAuditDbcontext db, ILogger<KpiController> logger, IKpiService kpiService)
     {
         _db = db;
         _logger = logger;

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -34,7 +35,7 @@ public class OrganizationHierarchy
     /// <summary>
     /// 創建時間
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 導覽屬性：父組織類型

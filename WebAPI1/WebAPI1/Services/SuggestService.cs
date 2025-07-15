@@ -6,7 +6,6 @@ using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using Exception = System.Exception;
 
 namespace WebAPI1.Services;
@@ -55,7 +54,36 @@ public class SuggestmanyRow
     public string? ExecPlan { get; set; }
     public string? Remark { get; set; }
 }
+public class SuggestDetailDto
+{
+    public int Id { get; set; }
+    [Column(TypeName = "date")]
+    [JsonConverter(typeof(DateOnlyJsonConverter))]
+    public DateTime Date { get; set; }
+    public string? OrganizationName { get; set; }
+    public string? SuggestEventTypeName { get; set; }
+    public List<SuggestReportDto> Reports { get; set; } = new();
+}
 
+public class SuggestReportDto
+{
+    public int Id { get; set; }
+    public string? Committee { get; set; }
+    public string? Suggestion { get; set; }
+    public string? SuggestionType { get; set; }
+    public string? RespDept { get; set; }
+    public string? ImproveDetails { get; set; }
+    public string? IsAdopted { get; set; }
+    public string? Completed { get; set; }
+    public int? DoneYear { get; set; }
+    public int? DoneMonth { get; set; }
+    public string? ParallelExec { get; set; }
+    public string? ExecPlan { get; set; }
+    public string? Remark { get; set; }
+    public string? Category { get; set; }
+    public int? Manpower { get; set; }
+    public decimal? Budget { get; set; }
+}
 public class AddSuggestDto
 {
     public int OrganizationId { get; set; }
@@ -113,6 +141,8 @@ public class SuggestDto
 public interface ISuggestService
 {
     Task<List<SuggestDto>> GetAllSuggestsAsync(int? organizationId = null, int? startYear = null, int? endYear = null, string? keyword = null);
+    Task<List<SuggestDto>> GetAllSuggestDatesAsync(int? organizationId = null, string? keyword = null);
+    Task<SuggestDetailDto?> GetSuggestDetailAsync(int id);
     Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto);
     Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream);
 
@@ -124,18 +154,20 @@ public interface ISuggestService
     Task<(bool Success, string Message)> ImportAsync(IFormFile file);
     Task<List<object>> GetReportsByOrganizationAsync(int organizationId);
     Task<bool> UpdateSuggestReportsAsync(List<SuggestDto> reports);
+    
 
+    
 }
 
 public class SuggestService:ISuggestService
 {
-    private readonly isha_sys_devContext _context;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<SuggestService> _logger;
     private readonly IOrganizationService _organizationService;
 
-    public SuggestService(isha_sys_devContext context,ILogger<SuggestService> logger,IOrganizationService organizationService)
+    public SuggestService(ISHAuditDbcontext db,ILogger<SuggestService> logger,IOrganizationService organizationService)
     {
-        _context = context;
+        _db = db;
         _logger = logger;
         _organizationService = organizationService;
     }
@@ -197,7 +229,7 @@ public class SuggestService:ISuggestService
     int? endYear = null,
     string? keyword = null)
     {
-        var query = _context.SuggestReports
+        var query = _db.SuggestReports
             .Include(r => r.SuggestDate)
                 .ThenInclude(d => d.Organization)
             .Include(r => r.SuggestDate.SuggestEventType)
@@ -270,18 +302,109 @@ public class SuggestService:ISuggestService
         }).ToList();
     }
     
+    public async Task<List<SuggestDto>> GetAllSuggestDatesAsync(
+        int? organizationId = null,
+        string? keyword = null)
+    {
+        var query = _db.SuggestDates
+            .Include(d => d.Organization)
+            .Include(d => d.SuggestEventType)
+            .Include(d => d.SuggestReports) // 若你想同時知道底下有幾筆建議
+            .AsQueryable();
+
+        if (organizationId.HasValue)
+        {
+            var orgIds = _organizationService.GetDescendantOrganizationIds(organizationId.Value);
+            query = query.Where(d => orgIds.Contains(d.OrganizationId ?? 0));
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            keyword = keyword.Trim();
+            query = query.Where(d =>
+                d.SuggestReports.Any(r =>
+                    r.SuggestionContent.Contains(keyword) ||
+                    r.RespDept.Contains(keyword) ||
+                    r.ImproveDetails.Contains(keyword) ||
+                    r.ExecPlan.Contains(keyword) ||
+                    r.Remark.Contains(keyword) ||
+                    r.SuggestionType.Name.Contains(keyword) ||
+                    r.KpiField.field.Contains(keyword) ||
+                    r.User.Nickname.Contains(keyword)
+                ) ||
+                d.SuggestEventType.Name.Contains(keyword) ||
+                d.Organization.Name.Contains(keyword)
+            );
+        }
+
+        var data = await query
+            .OrderByDescending(d => d.Date)
+            .ToListAsync();
+
+        return data.Select(d => new SuggestDto
+        {
+            Id = d.Id,
+            Date = d.Date,
+            OrganizationName = d.Organization?.Name,
+            SuggestEventTypeName = d.SuggestEventType?.Name,
+        }).ToList();
+    }
+    public async Task<SuggestDetailDto?> GetSuggestDetailAsync(int id)
+    {
+        var main = await _db.SuggestDates
+            .Include(d => d.Organization)
+            .Include(d => d.SuggestEventType)
+            .Include(d => d.SuggestReports)
+            .ThenInclude(r => r.SuggestionType)
+            .Include(d => d.SuggestReports)
+            .ThenInclude(r => r.KpiField)
+            .Include(d => d.SuggestReports)
+            .ThenInclude(r => r.User)
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (main == null)
+            return null;
+
+        return new SuggestDetailDto
+        {
+            Id = main.Id,
+            Date = main.Date,
+            OrganizationName = main.Organization?.Name,
+            SuggestEventTypeName = main.SuggestEventType?.Name,
+            Reports = main.SuggestReports.Select(r => new SuggestReportDto
+            {
+                Id = r.Id,
+                Committee = r.User?.Nickname,
+                Suggestion = r.SuggestionContent,
+                SuggestionType = r.SuggestionType?.Name,
+                RespDept = r.RespDept,
+                ImproveDetails = r.ImproveDetails,
+                IsAdopted = r.IsAdopted.ToString(),
+                Completed = r.Completed.ToString(),
+                DoneYear = r.DoneYear,
+                DoneMonth = r.DoneMonth,
+                ParallelExec = r.ParallelExec.ToString(),
+                ExecPlan = r.ExecPlan,
+                Remark = r.Remark,
+                Category = r.KpiField?.field,
+                Manpower = r.Manpower,
+                Budget = r.Budget
+            }).ToList()
+        };
+    }
+    
     public async Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto)
     {
         try
         {
-            var now = DateTime.UtcNow;
+            var now = tool.GetTaiwanNow();
 
             // 處理 KpiField
             var fieldInput = dto.Category?.Trim();
             if (string.Equals(fieldInput, "製程安全", StringComparison.OrdinalIgnoreCase))
                 fieldInput = "製程安全管理";
 
-            var kpiField = await _context.KpiFields
+            var kpiField = await _db.KpiFields
                 .FirstOrDefaultAsync(f => f.field == fieldInput || f.enfield == fieldInput);
 
             if (kpiField == null)
@@ -293,39 +416,39 @@ public class SuggestService:ISuggestService
                     CreatedAt = now,
                     UpdateAt = now
                 };
-                _context.KpiFields.Add(kpiField);
-                await _context.SaveChangesAsync();
+                _db.KpiFields.Add(kpiField);
+                await _db.SaveChangesAsync();
             }
 
             // 委員帳號
-            var user = await _context.Users
+            var user = await _db.Users
                 .FirstOrDefaultAsync(u => u.Nickname == dto.Committee);
 
             if (user == null)
                 return (false, $"找不到對應的委員帳戶（{dto.Committee}）");
 
             // 建議類別
-            var suggestType = await _context.SuggestionTypes
+            var suggestType = await _db.SuggestionTypes
                 .FirstOrDefaultAsync(x => x.Name == dto.SuggestionType);
             if (suggestType == null)
             {
                 suggestType = new SuggestionType { Name = dto.SuggestionType, CreatedAt = now };
-                _context.SuggestionTypes.Add(suggestType);
-                await _context.SaveChangesAsync();
+                _db.SuggestionTypes.Add(suggestType);
+                await _db.SaveChangesAsync();
             }
 
             // 會議/活動類別
-            var suggestEventType = await _context.SuggestEventTypes
+            var suggestEventType = await _db.SuggestEventTypes
                 .FirstOrDefaultAsync(x => x.Name == dto.SuggestEventType);
             if (suggestEventType == null)
             {
                 suggestEventType = new SuggestEventType { Name = dto.SuggestEventType, CreatedAt = now };
-                _context.SuggestEventTypes.Add(suggestEventType);
-                await _context.SaveChangesAsync();
+                _db.SuggestEventTypes.Add(suggestEventType);
+                await _db.SaveChangesAsync();
             }
 
             // 取得或建立 SuggestDate（若已有相同組織+日期+建議內容+活動類型，則重用）
-            var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(x =>
+            var suggestDate = await _db.SuggestDates.FirstOrDefaultAsync(x =>
                 x.Date == dto.Date &&
                 x.OrganizationId == dto.OrganizationId &&
                 x.SuggestEventTypeId == suggestEventType.Id);
@@ -340,8 +463,8 @@ public class SuggestService:ISuggestService
                     CreatedAt = now,
                     UpdateAt = now
                 };
-                _context.SuggestDates.Add(suggestDate);
-                await _context.SaveChangesAsync();
+                _db.SuggestDates.Add(suggestDate);
+                await _db.SaveChangesAsync();
             }
 
             // 建立 SuggestReport
@@ -370,8 +493,8 @@ public class SuggestService:ISuggestService
                 UpdateAt = now
             };
 
-            _context.SuggestReports.Add(report);
-            await _context.SaveChangesAsync();
+            _db.SuggestReports.Add(report);
+            await _db.SaveChangesAsync();
 
             return (true, "✅ 匯入成功");
         }
@@ -428,11 +551,11 @@ public class SuggestService:ISuggestService
         if (rows == null || rows.Count == 0)
             return (false, "無資料可匯入", 0, 0);
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        var now = DateTime.UtcNow;
+        using var transaction = await _db.Database.BeginTransactionAsync();
+        var now = tool.GetTaiwanNow();
         int successCount = 0, failCount = 0;
         // 預先查出所有 SuggestionContent 以加速比對（避免逐筆查 DB）
-        var existingContents = await _context.SuggestReports
+        var existingContents = await _db.SuggestReports
             .Select(x => x.SuggestionContent)
             .ToListAsync();
         var existingSet = new HashSet<string>(existingContents);
@@ -460,7 +583,7 @@ public class SuggestService:ISuggestService
                     _ => fieldName
                 };
 
-                var kpiField = await _context.KpiFields
+                var kpiField = await _db.KpiFields
                     .FirstOrDefaultAsync(f => f.field == matchedField || f.enfield == matchedField);
 
                 if (kpiField == null)
@@ -478,7 +601,7 @@ public class SuggestService:ISuggestService
                     continue;
                 }
 
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Nickname == rawNickname);
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Nickname == rawNickname);
                 if (user == null)
                 {
                     string username;
@@ -487,7 +610,7 @@ public class SuggestService:ISuggestService
                         var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
                         username = $"member_{suffix}";
                     }
-                    while (await _context.Users.AnyAsync(u => u.Username == username));
+                    while (await _db.Users.AnyAsync(u => u.Username == username));
 
                     user = new User
                     {
@@ -503,8 +626,8 @@ public class SuggestService:ISuggestService
 
                     try
                     {
-                        _context.Users.Add(user);
-                        await _context.SaveChangesAsync();
+                        _db.Users.Add(user);
+                        await _db.SaveChangesAsync();
                     }
                     catch (Exception ex)
                     {
@@ -534,7 +657,7 @@ public class SuggestService:ISuggestService
                 SuggestionType suggestType = null;
                 if (!string.IsNullOrWhiteSpace(suggestionTypeName))
                 {
-                    suggestType = await _context.SuggestionTypes.FirstOrDefaultAsync(x => x.Name == suggestionTypeName);
+                    suggestType = await _db.SuggestionTypes.FirstOrDefaultAsync(x => x.Name == suggestionTypeName);
                     if (suggestType == null)
                     {
                         suggestType = new SuggestionType
@@ -542,8 +665,8 @@ public class SuggestService:ISuggestService
                             Name = suggestionTypeName,
                             CreatedAt = now
                         };
-                        _context.SuggestionTypes.Add(suggestType);
-                        await _context.SaveChangesAsync();
+                        _db.SuggestionTypes.Add(suggestType);
+                        await _db.SaveChangesAsync();
                     }
                 }
 
@@ -551,7 +674,7 @@ public class SuggestService:ISuggestService
                 SuggestEventType suggestEventType = null;
                 if (!string.IsNullOrWhiteSpace(eventTypeName))
                 {
-                    suggestEventType = await _context.SuggestEventTypes.FirstOrDefaultAsync(x => x.Name == eventTypeName);
+                    suggestEventType = await _db.SuggestEventTypes.FirstOrDefaultAsync(x => x.Name == eventTypeName);
                     if (suggestEventType == null)
                     {
                         suggestEventType = new SuggestEventType
@@ -559,13 +682,13 @@ public class SuggestService:ISuggestService
                             Name = eventTypeName,
                             CreatedAt = now
                         };
-                        _context.SuggestEventTypes.Add(suggestEventType);
-                        await _context.SaveChangesAsync();
+                        _db.SuggestEventTypes.Add(suggestEventType);
+                        await _db.SaveChangesAsync();
                     }
                 }
 
                 // 嘗試找出是否已有相同 SuggestDate
-                var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(x =>
+                var suggestDate = await _db.SuggestDates.FirstOrDefaultAsync(x =>
                     x.Date == row.Date &&
                     x.OrganizationId == row.OrganizationId &&
                     x.SuggestEventTypeId == suggestEventType.Id);
@@ -580,8 +703,8 @@ public class SuggestService:ISuggestService
                         CreatedAt = now,
                         UpdateAt = now
                     };
-                    _context.SuggestDates.Add(suggestDate);
-                    await _context.SaveChangesAsync();
+                    _db.SuggestDates.Add(suggestDate);
+                    await _db.SaveChangesAsync();
                 }
 
                 // 建立 SuggestReport
@@ -607,7 +730,7 @@ public class SuggestService:ISuggestService
                     UpdateAt = now
                 };
 
-                _context.SuggestReports.Add(newReport);
+                _db.SuggestReports.Add(newReport);
                 successCount++;
             }
             catch (Exception ex)
@@ -617,7 +740,7 @@ public class SuggestService:ISuggestService
             }
         }
 
-        await _context.SaveChangesAsync();
+        await _db.SaveChangesAsync();
         await transaction.CommitAsync();
 
         if (errorLogs.Count > 0)
@@ -654,7 +777,7 @@ public class SuggestService:ISuggestService
         for (int i = 0; i < headers.Length; i++)
             headerRow.CreateCell(i).SetCellValue(headers[i]);
 
-        var reports = await _context.SuggestReports
+        var reports = await _db.SuggestReports
             .Include(r => r.SuggestDate)
             .ThenInclude(d => d.Organization) // ✅ 廠商
             .Include(r => r.User)                // ✅ 委員
@@ -765,22 +888,22 @@ public class SuggestService:ISuggestService
                 var remark = row.GetCell(16)?.ToString()?.Trim();
 
                 // === 2. 尋找基礎資料（不可自動建立） ===
-                var org = await _context.Organizations.FirstOrDefaultAsync(o => o.Name == orgName);
+                var org = await _db.Organizations.FirstOrDefaultAsync(o => o.Name == orgName);
                 if (org == null) continue;
 
                 if (!DateTime.TryParse(dateStr, out var parsedDate)) continue;
 
-                var eventType = await _context.SuggestEventTypes.FirstOrDefaultAsync(x => x.Name == eventTypeName);
+                var eventType = await _db.SuggestEventTypes.FirstOrDefaultAsync(x => x.Name == eventTypeName);
                 if (eventType == null) continue;
 
-                var suggestionType = await _context.SuggestionTypes.FirstOrDefaultAsync(x => x.Name == suggestTypeName);
+                var suggestionType = await _db.SuggestionTypes.FirstOrDefaultAsync(x => x.Name == suggestTypeName);
                 if (suggestionType == null) continue;
 
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Nickname == committeeName);
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Nickname == committeeName);
                 if (user == null) continue;
 
                 // === 3. 取得既有 SuggestDate ===
-                var suggestDate = await _context.SuggestDates.FirstOrDefaultAsync(d =>
+                var suggestDate = await _db.SuggestDates.FirstOrDefaultAsync(d =>
                     d.Date == parsedDate &&
                     d.OrganizationId == org.Id &&
                     d.SuggestEventTypeId == eventType.Id
@@ -789,7 +912,7 @@ public class SuggestService:ISuggestService
                 if (suggestDate == null) continue;
 
                 // === 4. 僅更新既有 SuggestReport，不新增 ===
-                var existingReport = await _context.SuggestReports.FirstOrDefaultAsync(r =>
+                var existingReport = await _db.SuggestReports.FirstOrDefaultAsync(r =>
                     r.SuggestDateId == suggestDate.Id &&
                     r.UserId == user.Id &&
                     r.SuggestionContent == suggestionContent
@@ -814,7 +937,7 @@ public class SuggestService:ISuggestService
                 existingReport.UpdateAt       = DateTime.Now;
             }
 
-            await _context.SaveChangesAsync();
+            await _db.SaveChangesAsync();
             return (true, "✅ 匯入成功");
         }
         catch (Exception ex)
@@ -833,7 +956,7 @@ public class SuggestService:ISuggestService
     
     public async Task<List<object>> GetReportsByOrganizationAsync(int organizationId)
     {
-        var reports = await _context.SuggestReports
+        var reports = await _db.SuggestReports
             .Include(r => r.SuggestDate)
             .ThenInclude(d => d.Organization)
             .Include(r => r.SuggestionType)
@@ -874,7 +997,7 @@ public class SuggestService:ISuggestService
 
         foreach (var dto in reports)
         {
-            var report = await _context.SuggestReports.FindAsync(dto.Id);
+            var report = await _db.SuggestReports.FindAsync(dto.Id);
             if (report == null) continue;
 
             report.RespDept = dto.RespDept;
@@ -890,7 +1013,7 @@ public class SuggestService:ISuggestService
             report.Remark = dto.Remark;
         }
 
-        await _context.SaveChangesAsync();
+        await _db.SaveChangesAsync();
         return true;
     }
 }

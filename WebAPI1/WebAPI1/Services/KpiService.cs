@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
@@ -258,7 +258,7 @@ public interface IKpiService
 
 public class KpiService:IKpiService
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<KpiService> _logger;
     private readonly IOrganizationService _organizationService;
     private static int GetPeriodOrder(string? period)
@@ -274,7 +274,7 @@ public class KpiService:IKpiService
         };
     }
     public KpiService(
-        isha_sys_devContext db,
+        ISHAuditDbcontext db,
         ILogger<KpiService> logger,
         IOrganizationService organizationService)
     {
@@ -312,8 +312,8 @@ public class KpiService:IKpiService
             var newField = new KpiField
             {
                 field = dto.Field,
-                CreatedAt = DateTime.UtcNow,
-                UpdateAt = DateTime.UtcNow
+                CreatedAt = tool.GetTaiwanNow(),
+                UpdateAt = tool.GetTaiwanNow()
             };
 
             _db.KpiFields.Add(newField);
@@ -333,7 +333,7 @@ public class KpiService:IKpiService
     //匯入績效指標資料
     public async Task<(bool Success, string Message)> InsertKpiData(KpisingleRow row)
     {
-        var now = DateTime.UtcNow;
+        var now = tool.GetTaiwanNow();
         var userEmail = "idsl5397@mail.isha.org.tw";
         var currentYear = 113;
 
@@ -892,7 +892,7 @@ public class KpiService:IKpiService
         if (reports == null || !reports.Any())
             return (false, "報告資料不可為空");
 
-        var now = DateTime.UtcNow;
+        var now = tool.GetTaiwanNow();
 
         foreach (var r in reports)
         {
@@ -950,7 +950,7 @@ public class KpiService:IKpiService
         if (reports == null || reports.Count == 0)
             return (false, "無任何資料可儲存。");
 
-        var now = DateTime.UtcNow;
+        var now = tool.GetTaiwanNow();
 
         foreach (var dto in reports)
         {
@@ -1098,7 +1098,7 @@ public class KpiService:IKpiService
             return (false, "沒有任何資料可匯入。");
 
         using var transaction = await _db.Database.BeginTransactionAsync();
-        var now = DateTime.UtcNow;
+        var now = tool.GetTaiwanNow();
         var userEmail = "idsl5397@mail.isha.org.tw";
         var currentYear = 113;
 
@@ -1349,7 +1349,7 @@ public class KpiService:IKpiService
             return (false, "沒有任何資料可匯入。");
 
         using var transaction = await _db.Database.BeginTransactionAsync();
-        var now = DateTime.UtcNow;
+        var now = tool.GetTaiwanNow();
         var userEmail = "idsl5397@mail.isha.org.tw";
         var currentYear = 113;
 

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers;
@@ -11,10 +11,10 @@ public class OrganizationController: ControllerBase
 {
 
     private readonly IOrganizationService _organizationService;
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<OrganizationController> _logger;
     
-    public OrganizationController(isha_sys_devContext db,IOrganizationService organizationService,
+    public OrganizationController(ISHAuditDbcontext db,IOrganizationService organizationService,
         ILogger<OrganizationController> logger)
     {
         _db = db;

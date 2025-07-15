@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -95,12 +96,12 @@ public class User
     /// <summary>
     /// 創建時間
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 更新時間
     /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = tool.GetTaiwanNow();
 
     /// <summary>
     /// 帳號是否啟用
@@ -156,6 +157,12 @@ public class User
     public virtual Organization Organization { get; set; }
 
     /// <summary>
+    /// 導覽屬性：自定義密碼策略
+    /// </summary>
+    [ForeignKey("PasswordPolicyId")]
+    public virtual PasswordPolicy? PasswordPolicy { get; set; }
+    
+    /// <summary>
     /// 導覽屬性：用戶角色
     /// </summary>
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
@@ -169,4 +176,9 @@ public class User
     /// 導覽屬性：建議資料
     /// </summary>
     public virtual ICollection<SuggestReport> SuggestReports { get; set; } = new List<SuggestReport>();
+    
+    /// <summary>
+    /// 導覽屬性：建議資料
+    /// </summary>
+    public virtual ICollection<SuggestFile> SuggestFiles { get; set; } = new List<SuggestFile>();
 }

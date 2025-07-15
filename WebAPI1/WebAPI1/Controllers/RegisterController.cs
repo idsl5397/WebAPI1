@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers;
@@ -10,12 +10,12 @@ namespace WebAPI1.Controllers;
 [Route("[controller]")]
 public class RegisterController: ControllerBase
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<RegisterController> _logger;
     private readonly IOrganizationService _organizationService;
     private readonly IUserService _userService;
     
-    public RegisterController(ILogger<RegisterController> logger, IOrganizationService organizationService,isha_sys_devContext db, IUserService userService)
+    public RegisterController(ILogger<RegisterController> logger, IOrganizationService organizationService,ISHAuditDbcontext db, IUserService userService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _organizationService = organizationService;

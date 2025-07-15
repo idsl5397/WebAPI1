@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebAPI1.Models;
+using WebAPI1.Context;
 using WebAPI1.Services;
 
 namespace WebAPI1.Controllers;
@@ -7,13 +7,13 @@ namespace WebAPI1.Controllers;
 [Route("[controller]")]
 public class SuggestController: ControllerBase
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<SuggestController> _logger;
     private readonly ISuggestService _suggestService;
     private readonly IUserService _userService;
     private readonly IKpiService _kpiService;
     
-    public SuggestController(ILogger<SuggestController> logger,isha_sys_devContext db,ISuggestService suggestService,IUserService userService, IKpiService kpiService)
+    public SuggestController(ILogger<SuggestController> logger,ISHAuditDbcontext db,ISuggestService suggestService,IUserService userService, IKpiService kpiService)
     {
         _db = db;
         _suggestService = suggestService;
@@ -28,6 +28,23 @@ public class SuggestController: ControllerBase
     {
         var suggests = await _suggestService.GetAllSuggestsAsync(organizationId, startYear, endYear, keyword);
         return Ok(suggests);
+    }
+    
+    [HttpGet("GetAllSuggestData")]
+    public async Task<ActionResult<IEnumerable<SuggestDto>>> GetAllSuggestData([FromQuery] int? organizationId, [FromQuery] string? keyword)
+    {
+        var suggests = await _suggestService.GetAllSuggestDatesAsync(organizationId, keyword);
+        return Ok(suggests);
+    }
+    
+    [HttpGet("GetSuggestDetail/{id}")]
+    public async Task<IActionResult> GetSuggestDetail(int id)
+    {
+        var result = await _suggestService.GetSuggestDetailAsync(id);
+        if (result == null)
+            return NotFound();
+
+        return Ok(result);
     }
     
     [HttpGet("GetCommitteeUsers")]

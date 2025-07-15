@@ -4,9 +4,9 @@ using System.Text;
 using Isopoh.Cryptography.Argon2;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using WebAPI1.Context;
 using WebAPI1.Controllers;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
@@ -34,6 +34,10 @@ public class LoginResultDto
     public string Token { get; set; }
     public string Nickname { get; set; }
     public string Email { get; set; }
+    // 強制要求使用者變更密碼（過期或初次登入）
+    public bool ForceChangePassword { get; set; } = false;
+    // 🔔 新增：是否提醒密碼即將過期
+    public bool ShowPasswordExpiryWarning { get; set; } = false;
 }
 
 public interface IUserService
@@ -46,12 +50,12 @@ public interface IUserService
 }
 public class UserService:IUserService
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<UserService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IAuthService _authService;
     public UserService(
-        isha_sys_devContext db,
+        ISHAuditDbcontext db,
         ILogger<UserService> logger,IConfiguration configuration,IAuthService authService)
     {
         _db = db;
@@ -79,14 +83,15 @@ public class UserService:IUserService
             EmailVerified = true,
             EmailVerifiedAt = null,
             TokenExpiresAt = null,
-            ForceChangePassword = true,
+            ForceChangePassword = false,
+            PasswordPolicyId = 1,
             PasswordChangedAt = null,
             PasswordExpiresAt = null,
             PasswordFailedAttempts = 0,
             PasswordLockedUntil = null,
             LastPasswordExpiryReminder = null,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = tool.GetTaiwanNow(),
+            UpdatedAt = tool.GetTaiwanNow()
         };
 
         _db.Users.Add(user);
@@ -97,33 +102,90 @@ public class UserService:IUserService
     public async Task<LoginResultDto> VerifyUserLoginAsync(LoginDto dto)
     {
         var user = await _db.Users
+            .Include(u => u.PasswordPolicy)
             .Where(u => u.Email == dto.Usermail)
-            .Select(u => new { u.Id,u.Nickname, u.Email, u.PasswordHash })
             .FirstOrDefaultAsync();
 
         if (user == null)
         {
-            return new LoginResultDto
-            {
-                Success = false,
-                Message = "使用者不存在"
-            };
+            return new LoginResultDto { Success = false, Message = "使用者不存在" };
+        }
+
+        // 檢查帳號是否被鎖定
+        if (user.PasswordLockedUntil.HasValue && user.PasswordLockedUntil.Value > tool.GetTaiwanNow())
+        {
+            return new LoginResultDto { Success = false, Message = $"帳號已鎖定，請於 {user.PasswordLockedUntil.Value:yyyy-MM-dd HH:mm} 後再試" };
         }
 
         if (!Argon2.Verify(user.PasswordHash, dto.Password))
         {
-            return new LoginResultDto
+            user.PasswordFailedAttempts++;
+            
+            // 檢查是否需要鎖定
+            var policy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
+            if (policy != null && user.PasswordFailedAttempts >= policy.LockoutThreshold)
             {
-                Success = false,
-                Message = "帳號或密碼錯誤"
-            };
+                user.PasswordLockedUntil = tool.GetTaiwanNow().AddMinutes(policy.LockoutDurationMinutes);
+            }
+
+            await _db.SaveChangesAsync();
+
+            return new LoginResultDto { Success = false, Message = "帳號或密碼錯誤" };
         }
 
-        // 產生 JWT
+        // 驗證成功：重置失敗次數與鎖定狀態
+        user.PasswordFailedAttempts = 0;
+        user.PasswordLockedUntil = null;
+        user.LastLoginAt = tool.GetTaiwanNow();
+
+        // 取得密碼策略
+        var currentPolicy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
+        
+        // 檢查密碼是否已過期或即將過期
+        if (currentPolicy?.PasswordExpiryDays > 0)
+        {
+            var passwordSetTime = user.PasswordChangedAt ?? user.CreatedAt;
+            var expiryDate = passwordSetTime.AddDays(currentPolicy.PasswordExpiryDays);
+            var daysUntilExpiry = (expiryDate - tool.GetTaiwanNow()).TotalDays;
+            var now = tool.GetTaiwanNow();
+            
+            if (tool.GetTaiwanNow() > expiryDate)
+            {
+                return new LoginResultDto
+                {
+                    Success = false,
+                    Message = "密碼已過期，請重設密碼",
+                    ForceChangePassword = true
+                };
+            }
+            else if (daysUntilExpiry <= currentPolicy.PasswordExpiryWarningDays)
+            {
+                if (user.LastPasswordExpiryReminder == null || user.LastPasswordExpiryReminder.Value.Date < now.Date)
+                {
+                    user.LastPasswordExpiryReminder = now;
+                    await _db.SaveChangesAsync();
+
+                    var remaining = expiryDate - now;
+                    var message = $"密碼將於 {expiryDate:yyyy-MM-dd HH:mm:ss} 過期（剩餘 {remaining.Days} 天 {remaining.Hours} 小時 {remaining.Minutes} 分鐘），將會強制變更密碼";
+
+                    return new LoginResultDto
+                    {
+                        Success = true,
+                        Message = message,
+                        Token = _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname),
+                        Nickname = user.Nickname,
+                        Email = user.Email
+                    };
+                }
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
         var accessToken = _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname);
         var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
         _authService.SetRefreshTokenCookie(refreshToken);
-        
+
         return new LoginResultDto
         {
             Success = true,
@@ -133,6 +195,7 @@ public class UserService:IUserService
             Email = user.Email
         };
     }
+
     
     public async Task<List<UserDto>> GetCommitteeUsers()
     {

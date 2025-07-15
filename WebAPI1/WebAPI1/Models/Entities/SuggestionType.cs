@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
@@ -16,7 +17,7 @@ public class SuggestionType
 
     public bool IsActive { get; set; } = true;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = tool.GetTaiwanNow();
     
     public virtual ICollection<SuggestReport> SuggestReports { get; set; } = new List<SuggestReport>();
 }

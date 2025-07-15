@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WebAPI1.Context;
 using WebAPI1.Entities;
-using WebAPI1.Models;
 
 namespace WebAPI1.Services;
 
@@ -45,10 +45,10 @@ public interface IOrganizationService
 }
 public class OrganizationService:IOrganizationService
 {
-    private readonly isha_sys_devContext _db;
+    private readonly ISHAuditDbcontext _db;
     private readonly ILogger<OrganizationService> _logger;
     public OrganizationService(
-        isha_sys_devContext db,
+        ISHAuditDbcontext db,
         ILogger<OrganizationService> logger)
     {
         _db = db;

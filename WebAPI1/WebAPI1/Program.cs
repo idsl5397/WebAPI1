@@ -6,13 +6,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using WebAPI1.Models;
 using WebAPI1.Services;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
+using WebAPI1.Context;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseWebRoot("wwwroot");
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 // Add services to the container.
 
@@ -26,7 +28,7 @@ builder.Services.AddSwaggerGen();
 //     options.Dsn = "https://e4acbce33ad370e3c0fb2dacfb2f0309@o4509036673826816.ingest.us.sentry.io/4509070034403328";
 //     options.Debug = true;
 // });
-builder.Services.AddDbContext<isha_sys_devContext>(options =>
+builder.Services.AddDbContext<ISHAuditDbcontext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase")));
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>

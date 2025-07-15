@@ -40,7 +40,5 @@ public class UserInfoName
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdateAt { get; set; }
     
-    [InverseProperty("UserInfoName")]
-    public virtual ICollection<SuggestFile> SuggestFiles { get; set; } = new List<SuggestFile>();
 
 }
