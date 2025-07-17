@@ -141,6 +141,13 @@ public class UserService:IUserService
         // 取得密碼策略
         var currentPolicy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
         
+        var permissions = await _db.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Key)
+            .Distinct()
+            .ToListAsync();
+        
         // 檢查密碼是否已過期或即將過期
         if (currentPolicy?.PasswordExpiryDays > 0)
         {
@@ -172,7 +179,7 @@ public class UserService:IUserService
                     {
                         Success = true,
                         Message = message,
-                        Token = _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname),
+                        Token = await _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname, permissions),
                         Nickname = user.Nickname,
                         Email = user.Email
                     };
@@ -182,7 +189,7 @@ public class UserService:IUserService
 
         await _db.SaveChangesAsync();
 
-        var accessToken = _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname);
+        var accessToken = await _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname, permissions);
         var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
         _authService.SetRefreshTokenCookie(refreshToken);
 

@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WebAPI1.Context;
 using WebAPI1.Services;
 
@@ -31,9 +34,30 @@ public class SuggestController: ControllerBase
     }
     
     [HttpGet("GetAllSuggestData")]
+    [Authorize]  // 確保有登入
     public async Task<ActionResult<IEnumerable<SuggestDto>>> GetAllSuggestData([FromQuery] int? organizationId, [FromQuery] string? keyword)
     {
-        var suggests = await _suggestService.GetAllSuggestDatesAsync(organizationId, keyword);
+        // 從 JWT 取得 userId
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized("無效的使用者身份");
+
+        // 查出這位使用者的所屬組織與類型
+        var user = await _db.Users
+            .Include(u => u.Organization)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return NotFound("找不到使用者資料");
+
+        var orgTypeId = user.Organization.TypeId;
+
+        // TypeId = 1 為 admin，否則強制鎖定為自己組織
+        int? finalOrgId = orgTypeId == 1
+            ? organizationId    // admin：有傳就查指定，沒傳就查全部
+            : user.OrganizationId;
+
+        var suggests = await _suggestService.GetAllSuggestDatesAsync(finalOrgId, keyword);
         return Ok(suggests);
     }
     

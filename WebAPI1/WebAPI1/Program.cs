@@ -1,39 +1,29 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using WebAPI1.Services;
-using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using WebAPI1.Context;
+using WebAPI1.Services;
 
-var options  = new WebApplicationOptions
+var options = new WebApplicationOptions
 {
-    WebRootPath = "wwwroot"  // 這樣才是正確設定 web root 的方式
+    WebRootPath = "wwwroot"
 };
 
 var builder = WebApplication.CreateBuilder(options);
 
-
+// 讀取 JWT 設定
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-// Add services to the container.
 
+// Add services
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-//sentry log
-// builder.WebHost.UseSentry(options =>
-// {
-//     options.Dsn = "https://e4acbce33ad370e3c0fb2dacfb2f0309@o4509036673826816.ingest.us.sentry.io/4509070034403328";
-//     options.Debug = true;
-// });
+
 builder.Services.AddDbContext<ISHAuditDbcontext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase")));
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
@@ -50,10 +40,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
-            ClockSkew = TimeSpan.Zero // ✅ 建議設為 0，不然有預設 5 分鐘容錯
+            ClockSkew = TimeSpan.Zero
         };
 
-        // ✅ 加入事件來處理過期 token
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -63,18 +52,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Fail("Access token 過期");
                 }
-
                 return Task.CompletedTask;
             }
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Permission:view", policy => policy.RequireClaim("permission", "view"));
+    options.AddPolicy("Permission:edit", policy => policy.RequireClaim("permission", "edit"));
+    options.AddPolicy("Permission:delete", policy => policy.RequireClaim("permission", "delete"));
+    options.AddPolicy("Permission:view-ranking", policy => policy.RequireClaim("permission", "view-ranking"));
+    options.AddPolicy("Permission:view-report", policy => policy.RequireClaim("permission", "view-report"));
+});
 
 builder.Services.AddHttpsRedirection(options =>
 {
-    options.HttpsPort = null; // 禁用 HTTPS 重定向
+    options.HttpsPort = null;
 });
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -85,9 +81,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-
-builder.Services.AddControllers();
-
+// 注入 Service
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
@@ -95,27 +89,35 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISuggestService, SuggestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IImprovementService, ImprovementService>();
-builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
-// app.Urls.Add("http://0.0.0.0:8080");
 
-// Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
-// {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-// }
+// ✳️ 自動依 Host 判斷是否需要加上 PathBase
+app.Use((context, next) =>
+{
+    if (context.Request.Host.Host.Contains("security.bip.gov.tw"))
+    {
+        context.Request.PathBase = "/iskpi";
+    }
+    return next();
+});
 
 app.UseRouting();
+app.UseStaticFiles();
 app.UseHttpsRedirection();
-app.UseAuthentication();  // **⚠️ 確保這行存在**
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseCors("AllowAll");
 
-
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint($"{(app.Environment.IsDevelopment() ? "" : "/iskpi")}/swagger/v1/swagger.json", "API V1");
+    });
+}
 app.MapControllers();
 
 app.Run();

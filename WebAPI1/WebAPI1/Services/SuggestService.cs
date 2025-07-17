@@ -309,7 +309,6 @@ public class SuggestService:ISuggestService
         var query = _db.SuggestDates
             .Include(d => d.Organization)
             .Include(d => d.SuggestEventType)
-            .Include(d => d.SuggestReports) // 若你想同時知道底下有幾筆建議
             .AsQueryable();
 
         if (organizationId.HasValue)

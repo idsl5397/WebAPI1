@@ -712,6 +712,61 @@ namespace WebAPI1.Migrations
                     b.ToTable("PasswordPolicy");
                 });
 
+            modelBuilder.Entity("WebAPI1.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Permissions");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.RolePermission", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions");
+                });
+
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
                     b.Property<int>("Id")
@@ -1138,6 +1193,8 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RoleId");
+
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
@@ -1321,6 +1378,25 @@ namespace WebAPI1.Migrations
                     b.Navigation("OrganizationType");
                 });
 
+            modelBuilder.Entity("WebAPI1.Entities.RolePermission", b =>
+                {
+                    b.HasOne("WebAPI1.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebAPI1.Entities.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
                     b.HasOne("WebAPI1.Entities.Organization", "Organization")
@@ -1423,11 +1499,19 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.UserRole", b =>
                 {
+                    b.HasOne("WebAPI1.Entities.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("WebAPI1.Entities.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Role");
 
                     b.Navigation("User");
                 });
@@ -1495,6 +1579,18 @@ namespace WebAPI1.Migrations
             modelBuilder.Entity("WebAPI1.Entities.PasswordPolicy", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("WebAPI1.Entities.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>

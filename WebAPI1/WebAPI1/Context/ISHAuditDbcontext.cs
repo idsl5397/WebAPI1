@@ -32,6 +32,9 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<OrganizationHierarchy> OrganizationHierarchies { get; set; }  
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserRole> UserRoles { get; set; }
+    public virtual DbSet<Role> Roles { get; set; }
+    public virtual DbSet<Permission> Permissions { get; set; }
+    public virtual DbSet<RolePermission> RolePermissions { get; set; }
     public virtual DbSet<UserPasswordHistory> UserRPasswordHistories { get; set; }
     public virtual DbSet<SuggestEventType> SuggestEventTypes { get; set; }
     public virtual DbSet<SuggestionType> SuggestionTypes { get; set; }
@@ -218,21 +221,25 @@ public partial class ISHAuditDbcontext : DbContext
             // 複合索引（用於快速查找特定用戶的密碼歷史）
             entity.HasIndex(uph => new { uph.UserId, uph.CreatedAt });
         });
-        
-        // 設定 UserRole 表 (多對多關聯表)
-        modelBuilder.Entity<UserRole>()
-            .HasKey(ur => ur.Id);
 
-        modelBuilder.Entity<UserRole>()
-            .HasIndex(ur => new { ur.UserId, ur.RoleId })
-            .IsUnique();
-
-        // 設定 UserRole 與 User 關聯
-        modelBuilder.Entity<UserRole>()
-            .HasOne(ur => ur.User)
-            .WithMany(u => u.UserRoles)
-            .HasForeignKey(ur => ur.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        //UserRole表關聯配置
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.HasKey(ur => ur.Id);
+            
+            entity.HasIndex(ur => new { ur.UserId, ur.RoleId })
+                .IsUnique();
+            
+            entity.HasOne(ur => ur.User)
+                .WithMany(u => u.UserRoles)
+                .HasForeignKey(ur => ur.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(ur => ur.Role)
+                .WithMany(r => r.UserRoles)
+                .HasForeignKey(ur => ur.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         
         // PasswordPolicy表關聯配置
         modelBuilder.Entity<PasswordPolicy>(entity =>
@@ -259,6 +266,22 @@ public partial class ISHAuditDbcontext : DbContext
             
             // 組織類型策略索引
             entity.HasIndex(pp => pp.OrganizationTypeId);
+        });
+        
+        // RolePermission表關聯配置
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            entity.HasOne(rp => rp.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(rp => rp.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                .WithMany(p => p.RolePermissions)
+                .HasForeignKey(rp => rp.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
         
 //--------------------     Kpi    --------------------

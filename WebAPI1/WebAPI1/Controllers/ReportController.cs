@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Context;
@@ -54,6 +55,7 @@ public class ReportController: ControllerBase
     /// <param name="topN">可選參數，指定只取前 N 名</param>
     /// <returns></returns>
     [HttpGet("completion-ranking")]
+    [HasPermission("view-ranking")]
     public async Task<ActionResult<List<CompanyCompletionRankingDto>>> GetCompletionRanking([FromQuery] int? topN = null)
     {
         var result = await _reportService.GetCompletionRankingAsync(topN);
@@ -61,6 +63,7 @@ public class ReportController: ControllerBase
     }
     
     [HttpGet("uncompleted-suggestions")]
+    [HasPermission("view-ranking")]
     public async Task<ActionResult<List<SuggestUncompletedDto>>> GetUncompletedSuggestions([FromQuery] int organizationId)
     {
         var result = await _reportService.GetUncompletedSuggestionsAsync(organizationId);
@@ -70,7 +73,9 @@ public class ReportController: ControllerBase
     /// <summary>
     /// 取得公司 KPI 達成率排行榜
     /// </summary>
+    [Authorize]
     [HttpGet("kpi-ranking")]
+    [HasPermission("view-ranking")]
     public async Task<IActionResult> GetKpiRanking(
         [FromQuery] int? startYear,
         [FromQuery] int? endYear,
@@ -91,6 +96,7 @@ public class ReportController: ControllerBase
     }
     
     [HttpGet("unmet-kpi")]
+    [HasPermission("view-ranking")]
     public async Task<IActionResult> GetUnmetKpis(
         int organizationId,
         int? startYear = null,

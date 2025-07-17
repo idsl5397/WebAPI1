@@ -38,9 +38,9 @@ public class UserRole
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
 
-    // /// <summary>
-    // /// 導覽屬性：角色
-    // /// </summary>
-    // [ForeignKey("RoleId")]
-    // public virtual Role Role { get; set; }
+    /// <summary>
+    /// 導覽屬性：角色
+    /// </summary>
+    [ForeignKey("RoleId")]
+    public virtual Role Role { get; set; }
 }
