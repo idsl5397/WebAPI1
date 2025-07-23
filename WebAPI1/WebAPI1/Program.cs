@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebAPI1.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using WebAPI1.Context;
 
@@ -25,7 +26,33 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "績效指標資料庫後台", Version = "v1" });
+
+    // ✅ 加入 JWT Bearer 支援
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "請輸入 JWT Token，格式為：Bearer {token}",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+    // ✅ 全域要求加上 Bearer 權限
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+        {
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 //sentry log
 // builder.WebHost.UseSentry(options =>
 // {
@@ -117,10 +144,10 @@ var app = builder.Build();
 // }
 
 app.UseRouting();
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthentication();  // **⚠️ 確保這行存在**
 app.UseAuthorization();
-
+app.UseStaticFiles();
 app.UseCors("AllowAll");
 
 
