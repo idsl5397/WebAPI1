@@ -60,6 +60,7 @@ public class SuggestDetailDto
     [Column(TypeName = "date")]
     [JsonConverter(typeof(DateOnlyJsonConverter))]
     public DateTime Date { get; set; }
+    public int? OrganizationId { get; set; }
     public string? OrganizationName { get; set; }
     public string? SuggestEventTypeName { get; set; }
     public List<SuggestReportDto> Reports { get; set; } = new();
@@ -368,6 +369,7 @@ public class SuggestService:ISuggestService
         {
             Id = main.Id,
             Date = main.Date,
+            OrganizationId = main.OrganizationId,
             OrganizationName = main.Organization?.Name,
             SuggestEventTypeName = main.SuggestEventType?.Name,
             Reports = main.SuggestReports.Select(r => new SuggestReportDto

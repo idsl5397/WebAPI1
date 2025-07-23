@@ -3,6 +3,88 @@
   "ManifestType": "Build",
   "Endpoints": [
     {
+      "Route": "image/logo.6k7qfyn2vm.svg",
+      "AssetFile": "image/logo.svg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "67699"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/svg+xml"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 18 Jul 2025 09:28:44 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "6k7qfyn2vm"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak="
+        },
+        {
+          "Name": "label",
+          "Value": "image/logo.svg"
+        }
+      ]
+    },
+    {
+      "Route": "image/logo.svg",
+      "AssetFile": "image/logo.svg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "67699"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/svg+xml"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 18 Jul 2025 09:28:44 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak="
+        }
+      ]
+    },
+    {
       "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.ioc5wr2mwo.pdf",
       "AssetFile": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
       "Selectors": [],

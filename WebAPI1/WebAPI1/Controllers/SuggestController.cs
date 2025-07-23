@@ -62,11 +62,24 @@ public class SuggestController: ControllerBase
     }
     
     [HttpGet("GetSuggestDetail/{id}")]
+    [Authorize]
     public async Task<IActionResult> GetSuggestDetail(int id)
     {
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var user = await _db.Users.Include(u => u.Organization).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null)
+            return NotFound();
+
         var result = await _suggestService.GetSuggestDetailAsync(id);
         if (result == null)
             return NotFound();
+
+        // 🔐 權限驗證：非 admin 就只能看自己組織
+        if (user.Organization.TypeId != 1 && result.OrganizationId != user.OrganizationId)
+            return Forbid();
 
         return Ok(result);
     }

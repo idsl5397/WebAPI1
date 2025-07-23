@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "BpkK2jT+x0OUHD43ud3kdNkYCJP5qfI8B2Jb+xQraws=",
+  "Hash": "Rq/hCar3FIhk8up76uzOtXHWQvUMTskql5ll2FTHk60=",
   "Source": "WebAPI1",
   "BasePath": "_content/WebAPI1",
   "Mode": "Default",
@@ -16,6 +16,27 @@
     }
   ],
   "Assets": [
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "image/logo#[.{fingerprint}]?.svg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "6k7qfyn2vm",
+      "Integrity": "OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\image\\logo.svg"
+    },
     {
       "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
       "SourceId": "WebAPI1",
@@ -60,6 +81,88 @@
     }
   ],
   "Endpoints": [
+    {
+      "Route": "image/logo.6k7qfyn2vm.svg",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "67699"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/svg+xml"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 18 Jul 2025 09:28:44 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "6k7qfyn2vm"
+        },
+        {
+          "Name": "label",
+          "Value": "image/logo.svg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak="
+        }
+      ]
+    },
+    {
+      "Route": "image/logo.svg",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "67699"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/svg+xml"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 18 Jul 2025 09:28:44 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak="
+        }
+      ]
+    },
     {
       "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.ioc5wr2mwo.pdf",
       "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",

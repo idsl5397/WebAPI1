@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,11 +24,36 @@ public class ReportController: ControllerBase
     }
     
     [HttpGet("GetCompletionRates")]
+    [Authorize]
     public async Task<IActionResult> GetCompletionRates([FromQuery] int? organizationId)
     {
+        // 取得目前登入使用者的 Id
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        // 撈出使用者與組織資訊
+        var user = await _db.Users.Include(u => u.Organization)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null)
+            return NotFound();
+
+        // 🔐 權限驗證邏輯
+        // TypeId == 1 代表園管局（擁有跨組織查詢權限）
+        if (user.Organization.TypeId != 1)
+        {
+            // 非園管局 → 不可查詢其他組織資料
+            if (organizationId.HasValue && organizationId.Value != user.OrganizationId)
+                return Forbid();
+
+            // 如果未指定 organizationId，預設查自己的
+            organizationId = user.OrganizationId;
+        }
+
         var result = await _reportService.GetKpiCompletionRatesAsync(organizationId);
         return Ok(new { success = true, data = result });
     }
+    
     [HttpGet("GetOrganizationsWithSuggestData")]
     public async Task<IActionResult> GetOrganizationsWithSuggestData()
     {
