@@ -119,21 +119,21 @@ public class AuthService: IAuthService
         }
     }
 
-    public void SetRefreshTokenCookie(string refreshToken)
-    {
-        var context = _httpContextAccessor.HttpContext;
-        if (context != null)
-        {
-            context.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Path = "/",
-                Expires = tool.GetTaiwanNow().AddDays(7)
-            });
-        }
-    }
+    // public void SetRefreshTokenCookie(string refreshToken)
+    // {
+    //     var context = _httpContextAccessor.HttpContext;
+    //     if (context != null)
+    //     {
+    //         context.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+    //         {
+    //             HttpOnly = true,
+    //             Secure = true,
+    //             SameSite = SameSiteMode.Strict,
+    //             Path = "/",
+    //             Expires = tool.GetTaiwanNow().AddDays(7)
+    //         });
+    //     }
+    // }
     
     public async Task<List<string>> GetUserPermissionsAsync(Guid userId)
     {

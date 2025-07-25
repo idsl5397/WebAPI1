@@ -31,6 +31,8 @@ public class LoginResultDto
 {
     public bool Success { get; set; }
     public string Message { get; set; }
+    
+    public string RefreshToken { get; set; }
     public string Token { get; set; }
     public string Nickname { get; set; }
     public string Email { get; set; }
@@ -223,13 +225,14 @@ public class UserService:IUserService
 
         var accessToken = await _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname, permissions);
         var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
-        _authService.SetRefreshTokenCookie(refreshToken);
+        // _authService.SetRefreshTokenCookie(refreshToken);
 
         return new LoginResultDto
         {
             Success = true,
             Message = "登入成功",
             Token = accessToken,
+            RefreshToken = refreshToken,
             Nickname = user.Nickname,
             Email = user.Email
         };

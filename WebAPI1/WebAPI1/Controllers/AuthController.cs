@@ -50,8 +50,7 @@ public class AuthController : ControllerBase
         var permissions = await _authService.GetUserPermissionsAsync(Guid.Parse(userId));
 
         var newAccessToken = await _authService.GenerateAccessToken(userId, email, name, permissions);
-        var newRefreshToken = _authService.GenerateRefreshToken(userId);
-        _authService.SetRefreshTokenCookie(newRefreshToken);
+
 
         return Ok(new { accessToken = newAccessToken });
     }

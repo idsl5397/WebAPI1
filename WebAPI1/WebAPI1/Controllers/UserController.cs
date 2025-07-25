@@ -55,14 +55,8 @@ namespace WebAPI1.Controllers
             if (!result.Success)
                 return Unauthorized(new { result.Message });
 
-            return Ok(new
-            {
-                success = true,
-                message = result.Message,
-                token = result.Token,
-                nickname = result.Nickname,
-                email = result.Email
-            });
+            return Ok(result
+            );
         }
         
         
