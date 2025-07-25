@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Context;
 using WebAPI1.Entities;
@@ -35,6 +36,7 @@ public class KpiController: ControllerBase
     }
     
     [HttpPost("import-single")]
+    [Authorize]
     public async Task<IActionResult> InsertKpiData([FromBody] KpisingleRow row)
     {
         if (!ModelState.IsValid)

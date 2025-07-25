@@ -66,10 +66,11 @@ public class UserService:IUserService
     public async Task<bool> CreateUserAsync(RegisterUserDto dto)
     {
         string hashedPassword = Argon2.Hash(dto.Password,
-            type: Argon2Type.HybridAddressing,  
-            timeCost: 2,  
+            type: Argon2Type.HybridAddressing,
+            timeCost: 2,
             memoryCost: 32768,
             parallelism: 2);
+
         var user = new User
         {
             Username = dto.UserName,
@@ -79,7 +80,7 @@ public class UserService:IUserService
             Unit = dto.Unit,
             Position = dto.Position,
             OrganizationId = dto.OrganizationId,
-            PasswordHash = hashedPassword, // ✅ hash 密碼
+            PasswordHash = hashedPassword,
             EmailVerified = true,
             EmailVerifiedAt = null,
             TokenExpiresAt = null,
@@ -96,7 +97,38 @@ public class UserService:IUserService
 
         _db.Users.Add(user);
         var result = await _db.SaveChangesAsync();
-        return result > 0;
+
+        if (result <= 0) return false;
+
+        // 取得該使用者組織的 TypeId
+        var org = await _db.Organizations
+            .FirstOrDefaultAsync(o => o.Id == dto.OrganizationId);
+
+        if (org == null)
+            throw new Exception("無效的組織 ID，找不到對應的組織");
+
+        // 根據 TypeId 決定 RoleId
+        int roleId;
+        if (new[] { 1, 5, 6 }.Contains(org.TypeId))
+            roleId = 1;
+        else if (new[] { 2, 3, 4 }.Contains(org.TypeId))
+            roleId = 2;
+        else
+            throw new Exception($"尚未定義 TypeId {org.TypeId} 對應的角色");
+
+        // 指派角色
+        var userRole = new UserRole
+        {
+            UserId = user.Id, // 注意：user.Id 是 Entity Framework 自動生成的 Guid
+            RoleId = roleId,
+            AssignedAt = tool.GetTaiwanNow(),
+            AssignedBy = Guid.Empty // ⚠️ 根據實務可改為系統帳號或管理者帳號
+        };
+
+        _db.UserRoles.Add(userRole);
+        var roleResult = await _db.SaveChangesAsync();
+
+        return roleResult > 0;
     }
     
     public async Task<LoginResultDto> VerifyUserLoginAsync(LoginDto dto)
