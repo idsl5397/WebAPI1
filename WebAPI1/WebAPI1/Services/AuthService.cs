@@ -48,7 +48,7 @@ public class AuthService: IAuthService
         {
             claims.Add(new Claim("permission", permission));
         }
-
+        var expires = int.Parse(_configuration["JwtSettings:Expires"]?? "30");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -56,7 +56,7 @@ public class AuthService: IAuthService
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: tool.GetTaiwanNow().AddMinutes(300),
+            expires: DateTime.UtcNow.AddMinutes(expires),
             signingCredentials: creds
         );
 

@@ -19,7 +19,7 @@ public class AuthController : ControllerBase
     [HttpPost("RefreshToken")]
     public async Task<IActionResult> RefreshToken()
     {
-        var refreshToken = Request.Cookies["refreshToken"];
+        var refreshToken = Request.Cookies["refresh_Token"];
         if (string.IsNullOrEmpty(refreshToken))
         {
             return Unauthorized(new { message = "Refresh Token 不存在" });
@@ -50,9 +50,9 @@ public class AuthController : ControllerBase
         var permissions = await _authService.GetUserPermissionsAsync(Guid.Parse(userId));
 
         var newAccessToken = await _authService.GenerateAccessToken(userId, email, name, permissions);
+        var newRefreshToken = Request.Cookies["refresh_Token"];
 
-
-        return Ok(new { accessToken = newAccessToken });
+        return Ok(new { accessToken = newAccessToken ,refreshToken = newRefreshToken });
     }
     
     [HttpGet("me")]

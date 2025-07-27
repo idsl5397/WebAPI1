@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ISHAuditAPI.Services;
+using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using WebAPI1.Context;
@@ -282,7 +283,21 @@ public class KpiService:IKpiService
         _logger = logger;
         _organizationService = organizationService;
     }
-    
+
+    public async Task<PublicDto.ApiResponse<dynamic>> Test()
+    {
+        var query = _db.Organizations.AsQueryable()
+            .ToListAsync<dynamic>();
+
+
+        return new PublicDto.ApiResponse<dynamic>
+        {
+            Success = true,
+            Message = "OK",
+            Data = query
+        };
+
+    }
     public async Task<List<KpiFieldOptionDto>> GetAllFieldsAsync()
     {
         return await _db.KpiFields
