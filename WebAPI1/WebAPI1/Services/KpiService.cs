@@ -201,6 +201,8 @@ public class KpiPreviewDto
     public double? ReportValue { get; set; }
     public string Remarks { get; set; }
     public string StatusText { get; set; } // 狀態顯示用
+    public int RowIndex { get; set; }                  // 第幾列
+    public List<string> ErrorMessages { get; set; }
 }
 
 public interface IKpiService
@@ -1701,13 +1703,40 @@ public class KpiService:IKpiService
             var row = sheet.GetRow(i);
             if (row == null) continue;
 
+            string indicatorName = row.GetCell(4)?.ToString();
+            string detailItemName = row.GetCell(5)?.ToString();
+            string statusText = row.GetCell(12)?.ToString();
+            string remarks = row.GetCell(14)?.ToString();
+
+            double? reportValue = double.TryParse(row.GetCell(13)?.ToString(), out var val) ? val : null;
+
+            // 驗證邏輯
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(indicatorName))
+                errors.Add("指標名稱缺失");
+
+            if (string.IsNullOrWhiteSpace(detailItemName))
+                errors.Add("細項名稱缺失");
+
+            if (!string.IsNullOrWhiteSpace(row.GetCell(13)?.ToString()) && reportValue == null)
+                errors.Add("實際值格式錯誤");
+
+            if (string.IsNullOrWhiteSpace(statusText))
+                errors.Add("狀態欄缺失");
+
+            if (!reportValue.HasValue && string.IsNullOrWhiteSpace(remarks))
+                errors.Add("實際值與備註不可同時為空");
+            
             previewList.Add(new KpiPreviewDto
             {
-                IndicatorName = row.GetCell(4)?.ToString(),
-                DetailItemName = row.GetCell(5)?.ToString(),
-                ReportValue = double.TryParse(row.GetCell(13)?.ToString(), out var val) ? val : null,
-                Remarks = row.GetCell(14)?.ToString(),
-                StatusText = row.GetCell(12)?.ToString()
+                IndicatorName = indicatorName,
+                DetailItemName = detailItemName,
+                ReportValue = reportValue,
+                Remarks = remarks,
+                StatusText = statusText,
+                RowIndex = i + 1, // ➕ 可加這欄顯示第幾列錯
+                ErrorMessages = errors
             });
         }
 

@@ -275,13 +275,28 @@ public class KpiController: ControllerBase
     }
     
     [HttpPost("fullpreview-for-report")]
+    [Authorize]
     public async Task<IActionResult> PreviewImportAsync(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("未上傳檔案");
+            return BadRequest(new { message = "未上傳檔案" });
 
         var previewList = await _kpiService.ReadPreviewAsync(file);
-        return Ok(previewList);
+
+        var errorList = previewList
+            .Where(p => p.ErrorMessages?.Any() == true)
+            .Select(p => $"第 {p.RowIndex} 列：{string.Join("、", p.ErrorMessages)}")
+            .ToList();
+
+        if (errorList.Any())
+        {
+            return BadRequest(new
+            {
+                message = "檔案格式錯誤，請修正後重新匯入。",
+                errors = errorList
+            });
+        }
+        return Ok(previewList); // 如果沒錯就正常回傳預覽資料
     }
     
     [HttpPost("fullsubmit-for-report")]

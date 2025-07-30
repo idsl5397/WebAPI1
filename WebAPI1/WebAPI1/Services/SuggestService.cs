@@ -565,6 +565,9 @@ public class SuggestService:ISuggestService
         for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
+            
+            if (!int.TryParse(row.OrganizationId.ToString(), out _))
+                continue;
             try
             {
                 var fieldName = row.FieldName?.Trim();
