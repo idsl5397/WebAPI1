@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { message = "Refresh Token 不存在" });
         }
-
+        //refresh_Token
         var principal = _authService.ValidateRefreshToken(refreshToken);
         if (principal == null)
         {
@@ -38,8 +38,7 @@ public class AuthController : ControllerBase
         }
 
         var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = principal.FindFirst(ClaimTypes.Email)?.Value ?? "";
-        var name = principal.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
 
         if (string.IsNullOrEmpty(userId))
         {
@@ -49,7 +48,7 @@ public class AuthController : ControllerBase
         // ⛓ 取得該使用者的權限（你也可以抽成 service）
         var permissions = await _authService.GetUserPermissionsAsync(Guid.Parse(userId));
 
-        var newAccessToken = await _authService.GenerateAccessToken(userId, email, name, permissions);
+        var newAccessToken = await _authService.GenerateAccessToken(userId);
         var newRefreshToken = Request.Cookies["refresh_Token"];
 
         return Ok(new { accessToken = newAccessToken ,refreshToken = newRefreshToken });

@@ -213,7 +213,7 @@ public class UserService:IUserService
                     {
                         Success = true,
                         Message = message,
-                        Token = await _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname, permissions),
+                        Token = await _authService.GenerateAccessToken(user.Id.ToString()),
                         Nickname = user.Nickname,
                         Email = user.Email
                     };
@@ -223,7 +223,7 @@ public class UserService:IUserService
 
         await _db.SaveChangesAsync();
 
-        var accessToken = await _authService.GenerateAccessToken(user.Id.ToString(), user.Email, user.Nickname, permissions);
+        var accessToken = await _authService.GenerateAccessToken(user.Id.ToString());
         var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
         // _authService.SetRefreshTokenCookie(refreshToken);
 

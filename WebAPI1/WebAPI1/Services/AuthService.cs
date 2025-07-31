@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Context;
+using WebAPI1.Entities;
 
 namespace WebAPI1.Services;
 
@@ -31,13 +32,23 @@ public class AuthService: IAuthService
         _context = context;
     }
 
-    public Task<string> GenerateAccessToken(string userId, string email, string nickname, List<string> permissions)
+    public Task<string> GenerateAccessToken(string userId)
     {
+        var user = _context.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ThenInclude(ur => ur.RolePermissions)
+            .ThenInclude(ur => ur.Permission)
+            .FirstOrDefault(a => a.Id == Guid.Parse(userId));
+        var permissions = user.UserRoles
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Key)
+            .ToList();
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim(ClaimTypes.Email, email),
-            new Claim(ClaimTypes.Name, nickname),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.Nickname),
             new Claim("token_type", "access"),
             new Claim(JwtRegisteredClaimNames.Sub, userId),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
