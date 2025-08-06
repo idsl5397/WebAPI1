@@ -105,5 +105,96 @@ namespace WebAPI1.Controllers
 
             return Ok(new { message = "Test Successful" });
         }
+        
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUser(Guid id)
+        {
+            var user = await _userService.GetUserByIdAsync(id);
+            if (user == null) return NotFound();
+            return Ok(user);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto dto)
+        {
+            var success = await _userService.UpdateUserAsync(id, dto);
+            if (!success) return NotFound();
+            return NoContent();
+        }
+        
+        [HttpPut("{id}/ChangePassword")]
+        public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                var success = await _userService.ChangePasswordAsync(id, dto.OldPassword, dto.NewPassword);
+                if (!success) return NotFound();
+                return Ok();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "伺服器錯誤，請稍後再試");
+            }
+        }
+        
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.NewPassword))
+                return BadRequest(new { message = "Email 與新密碼不能為空" });
+
+            var success = await _userService.ResetPasswordAsync(dto.Email, dto.NewPassword);
+
+            if (!success)
+                return NotFound(new { message = "找不到使用者" });
+
+            return Ok(new { message = "密碼重設成功" });
+        }
+        
+        [HttpPost("SendVerificationEmail")]
+        public async Task<IActionResult> SendVerificationEmail([FromBody] EmailRequestDto request)
+        {
+            bool success = await _userService.SendVerificationCodeAsync(request.Email);
+
+            if (success)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "驗證碼已發送"
+                });
+            }
+
+            return BadRequest(new
+            {
+                success = false,
+                message = "無法發送驗證碼"
+            });
+        }
+        
+        [HttpPost("VerifyEmailCode")]
+        public async Task<IActionResult> VerifyEmailCode([FromBody] VerifyCodeDto request)
+        {
+            bool success = await _userService.VerifyEmailCodeAsync(request.Email, request.Code);
+
+            if (success)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "驗證成功"
+                });
+            }
+
+            return BadRequest(new
+            {
+                success = false,
+                message = "驗證碼錯誤或已失效"
+            });
+        }
     }
 }

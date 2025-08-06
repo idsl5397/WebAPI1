@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "Rq/hCar3FIhk8up76uzOtXHWQvUMTskql5ll2FTHk60=",
+  "Hash": "AF0bA1ifmOnbyw2Ad0C3Np5Vm/ZTtu2o/3AHlhyvYxc=",
   "Source": "WebAPI1",
   "BasePath": "_content/WebAPI1",
   "Mode": "Default",
@@ -17,12 +17,12 @@
   ],
   "Assets": [
     {
-      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\images\\logo.svg",
       "SourceId": "WebAPI1",
       "SourceType": "Discovered",
       "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
       "BasePath": "_content/WebAPI1",
-      "RelativePath": "image/logo#[.{fingerprint}]?.svg",
+      "RelativePath": "images/logo#[.{fingerprint}]?.svg",
       "AssetKind": "All",
       "AssetMode": "All",
       "AssetRole": "Primary",
@@ -35,7 +35,7 @@
       "Integrity": "OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\image\\logo.svg"
+      "OriginalItemSpec": "wwwroot\\images\\logo.svg"
     },
     {
       "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
@@ -82,8 +82,8 @@
   ],
   "Endpoints": [
     {
-      "Route": "image/logo.6k7qfyn2vm.svg",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "Route": "images/logo.6k7qfyn2vm.svg",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\images\\logo.svg",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -118,7 +118,7 @@
         },
         {
           "Name": "label",
-          "Value": "image/logo.svg"
+          "Value": "images/logo.svg"
         },
         {
           "Name": "integrity",
@@ -127,8 +127,8 @@
       ]
     },
     {
-      "Route": "image/logo.svg",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\image\\logo.svg",
+      "Route": "images/logo.svg",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\images\\logo.svg",
       "Selectors": [],
       "ResponseHeaders": [
         {

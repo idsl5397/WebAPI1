@@ -21,7 +21,15 @@ var builder = WebApplication.CreateBuilder(options);
 
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-// Add services to the container.
+
+//redis settings
+builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+{
+    var redisConnectionString = builder.Configuration.GetValue<string>("ConnectionStrings:Redis");
+    if (string.IsNullOrWhiteSpace(redisConnectionString))
+        throw new ArgumentNullException(nameof(redisConnectionString));
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -130,8 +138,16 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISuggestService, SuggestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IImprovementService, ImprovementService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+
+var redisConnectionString = builder.Configuration.GetValue<string>("ConnectionStrings:Redis");
+        
+Console.WriteLine($"Redis 連線字串: {redisConnectionString}");
+// 添加數據庫服務
+var connectionString = builder.Configuration.GetValue<string>("ConnectionStrings:WebDatabase");
+Console.WriteLine($"SQL 連線字串: {connectionString}");
 
 var app = builder.Build();
 // app.Urls.Add("http://0.0.0.0:8080");

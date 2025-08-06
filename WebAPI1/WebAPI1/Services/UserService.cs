@@ -1,14 +1,34 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text.Json;
 using Isopoh.Cryptography.Argon2;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using WebAPI1.Context;
 using WebAPI1.Controllers;
 using WebAPI1.Entities;
 
+
 namespace WebAPI1.Services;
+
+public class ResetPasswordDto
+{
+    public string Email { get; set; }
+    public string NewPassword { get; set; }
+}
+public class VerifyCodeDto
+{
+    public string Code { get; set; }
+    public string Email { get; set; }
+}
+public class VerificationData
+{
+    public string Code { get; set; }
+    public int Attempts { get; set; }
+}
+public class EmailRequestDto
+{
+    public string Email { get; set; }
+}
 
 public class UserDto
 {
@@ -42,6 +62,20 @@ public class LoginResultDto
     public bool ShowPasswordExpiryWarning { get; set; } = false;
 }
 
+public class UpdateUserDto
+{
+    public string? Nickname { get; set; }
+    public string? Mobile { get; set; }
+    public string? Unit { get; set; }
+    public string? Position { get; set; }
+}
+
+public class ChangePasswordDto
+{
+    public string OldPassword { get; set; }
+    public string NewPassword { get; set; }
+}
+
 public interface IUserService
 {
     Task<bool> CreateUserAsync(RegisterUserDto dto);
@@ -49,21 +83,45 @@ public interface IUserService
     
     //獲取委員資料名單
     Task<List<UserDto>> GetCommitteeUsers();
+    
+    Task<User?> GetUserByIdAsync(Guid id);
+    Task<bool> UpdateUserAsync(Guid id, UpdateUserDto dto);
+    Task<bool> ChangePasswordAsync(Guid id, string oldPassword, string newPassword);
+    Task<bool> SendVerificationCodeAsync(string email);
+    Task<bool> VerifyEmailCodeAsync(string email, string inputCode);
+    Task<bool> ResetPasswordAsync(string email, string newPassword);
 }
+
 public class UserService:IUserService
 {
     private readonly ISHAuditDbcontext _db;
     private readonly ILogger<UserService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IAuthService _authService;
+    private readonly IDatabase _redisDb;
+    private readonly IEmailService _emailService;
     public UserService(
         ISHAuditDbcontext db,
-        ILogger<UserService> logger,IConfiguration configuration,IAuthService authService)
+        ILogger<UserService> logger,IConfiguration configuration,IAuthService authService,IConnectionMultiplexer redis,IEmailService emailService)
     {
         _db = db;
         _logger = logger;
         _configuration = configuration;
         _authService = authService;
+        _redisDb = redis.GetDatabase(); 
+        _emailService = emailService;
+    }
+    
+    static string Generate8DigitNumber()
+    {
+        // 產生一個隨機的 8 碼數字
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            byte[] bytes = new byte[4]; // 4 bytes 可表示一個 32-bit 整數
+            rng.GetBytes(bytes);
+            int number = Math.Abs(BitConverter.ToInt32(bytes, 0)) % 100000000; // 限制在 8 位數
+            return number.ToString("D8"); // 確保補滿 8 碼
+        }
     }
     public async Task<bool> CreateUserAsync(RegisterUserDto dto)
     {
@@ -254,5 +312,128 @@ public class UserService:IUserService
             .ToListAsync();
 
         return result;
+    }
+    
+    public async Task<User?> GetUserByIdAsync(Guid id)
+    {
+        return await _db.Users.FindAsync(id);
+    }
+
+    public async Task<bool> UpdateUserAsync(Guid id, UpdateUserDto dto)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return false;
+
+        user.Nickname = dto.Nickname;
+        user.Mobile = dto.Mobile;
+        user.Unit = dto.Unit;
+        user.Position = dto.Position;
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+    
+    public async Task<bool> ChangePasswordAsync(Guid id, string oldPassword, string newPassword)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null) return false;
+
+        // ✅ 驗證舊密碼
+        if (!Argon2.Verify(user.PasswordHash, oldPassword))
+        {
+            throw new ArgumentException("舊密碼錯誤");
+        }
+
+        // ✅ 更新新密碼（使用 Argon2 雜湊）
+        user.PasswordHash = Argon2.Hash(newPassword);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+    
+    public async Task<bool> ResetPasswordAsync(string email, string newPassword)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null) return false;
+        
+        // ✅ 更新新密碼（使用 Argon2 雜湊）
+        user.PasswordHash = Argon2.Hash(newPassword);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+    
+    public async Task<bool> SendVerificationCodeAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email 不可為空", nameof(email));
+
+        // 產生 8 碼驗證碼
+        var verificationCode = Generate8DigitNumber();
+        var redisKey = $"email_verification:{email}";
+
+        // 儲存驗證碼，設定 5 分鐘過期，並初始化錯誤次數
+        var data = new VerificationData { Code = verificationCode, Attempts = 0 };
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        await _redisDb.StringSetAsync(redisKey, JsonSerializer.Serialize(data, options), TimeSpan.FromMinutes(5));
+
+        bool emailSent = await _emailService.SendVerificationEmailCodeAsync(email, verificationCode);
+        if (!emailSent)
+        {
+            _logger.LogError("無法發送驗證碼至 {Email}", email);
+            return false;
+        }
+
+        _logger.LogInformation("已發送驗證碼至 {Email}: {Code}", email, verificationCode);
+        return true;
+    }
+    
+    public async Task<bool> VerifyEmailCodeAsync(string email, string inputCode)
+    {
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(inputCode))
+            throw new ArgumentException("Email 和驗證碼不可為空");
+
+        var redisKey = $"email_verification:{email}";
+
+        var storedData = await _redisDb.StringGetAsync(redisKey);
+        if (string.IsNullOrEmpty(storedData))
+        {
+            _logger.LogWarning("驗證碼不存在或已過期: {Email}", email);
+            return false;
+        }
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var data = JsonSerializer.Deserialize<VerificationData>(storedData, options);
+
+        if (data == null)
+        {
+            _logger.LogWarning("無法解析存儲的驗證數據: {Email}", email);
+            await _redisDb.KeyDeleteAsync(redisKey); // 刪除 Redis 記錄
+            return false;
+        }
+
+        if (data.Attempts >= 3)
+        {
+            _logger.LogWarning("驗證碼已達最大嘗試次數: {Email}", email);
+            await _redisDb.KeyDeleteAsync(redisKey); // 刪除 Redis 記錄
+            return false;
+        }
+
+        if (data.Code != inputCode)
+        {
+            data.Attempts += 1;
+            await _redisDb.StringSetAsync(redisKey, JsonSerializer.Serialize(data, options), TimeSpan.FromMinutes(5));
+            _logger.LogWarning("驗證碼輸入錯誤 (第 {Attempts} 次): {Email}", data.Attempts, email);
+            return false;
+        }
+
+        // 驗證成功，刪除 Redis 記錄
+        await _redisDb.KeyDeleteAsync(redisKey);
+        _logger.LogInformation("驗證碼驗證成功: {Email}", email);
+        return true;
     }
 }
