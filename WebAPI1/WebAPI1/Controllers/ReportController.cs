@@ -136,4 +136,32 @@ public class ReportController: ControllerBase
 
         return Ok(result);
     }
+    
+    // [HttpGet("kpi-trend")]
+    // public async Task<ActionResult<List<KpiTrendDto>>> GetKpiTrend([FromQuery] int? organizationId, [FromQuery] int startYear = 111, [FromQuery] int endYear = 113)
+    // {
+    //     var data = await _reportService.GetTrendDataAsync(organizationId, startYear, endYear);
+    //     return Ok(data);
+    // }
+    
+    [HttpGet("kpi-trend")]
+    public async Task<IActionResult> GetTestKpiDisplayAsync(
+        [FromQuery] int? organizationId,
+        [FromQuery] int? startYear,
+        [FromQuery] int? endYear,
+        [FromQuery] string? startQuarter,
+        [FromQuery] string? endQuarter,
+        [FromQuery] string? fieldName)
+    {
+        var result = await _reportService.GetTrendDataAsync(
+            organizationId,
+            startYear,
+            endYear,
+            startQuarter,
+            endQuarter,
+            fieldName
+        );
+
+        return Ok(result);
+    }
 }

@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebAPI1.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using WebAPI1.Context;
@@ -163,7 +164,15 @@ app.UseRouting();
 // app.UseHttpsRedirection();
 app.UseAuthentication();  // **⚠️ 確保這行存在**
 app.UseAuthorization();
-app.UseStaticFiles();
+
+
+// app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(app.Environment.WebRootPath, "images")),
+    RequestPath = "/images"  // 訪問路徑: /images/photo.jpg
+});
 app.UseCors("AllowAll");
 
 

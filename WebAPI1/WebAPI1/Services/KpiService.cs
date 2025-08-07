@@ -55,6 +55,8 @@ public class KpiDataCycleDto
     public string ComparisonOperator { get; set; }
     public decimal? TargetValue { get; set; }
     public string? Remarks { get; set; }
+    
+    public bool IsIndicator { get; set; } // ✅ 暫時加上這個
     public List<KpiReportDto> Reports { get; set; }
 }
 
@@ -138,6 +140,7 @@ public class KpiReportDto
     public int Year { get; set; }
     public string Period { get; set; }
     public decimal? KpiReportValue { get; set; }
+    public bool IsMet { get; set; } // ✅ 暫時新增的欄位
 }
 public class KpiDisplayDto
 {

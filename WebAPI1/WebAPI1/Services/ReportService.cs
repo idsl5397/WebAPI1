@@ -9,6 +9,21 @@ using WebAPI1.Entities;
 
 namespace WebAPI1.Services;
 
+public class KpiReportStatDto
+{
+    public string Field { get; set; } = "";  // 如 PSM、EP、FR
+    public int Year { get; set; }
+    public string Period { get; set; } = "";
+    public int TotalCount { get; set; }
+    public int MetCount { get; set; }
+}
+public class KpiTrendDto
+{
+    public string Period { get; set; }    // 例如 114Q1
+    public string Field { get; set; }     // 例如 "PSM"
+    public decimal Percentage { get; set; } // 例如 87.5 (%)
+}
+
 public class UnmetKpiDto
 {
     public int Id { get; set; }
@@ -109,6 +124,16 @@ public interface IReportService
         string? startQuarter = null,
         string? endQuarter = null,
         string? fieldName = null);
+
+    // Task<List<KpiTrendDto>> GetTrendDataAsync(int? organizationId, int startYear, int endYear);
+
+    Task<List<KpiReportStatDto>> GetTrendDataAsync(
+        int? organizationId = null,
+        int? startYear = null,
+        int? endYear = null,
+        string? startQuarter = null,
+        string? endQuarter = null,
+        string? fieldName = null);
 }
 
 public class ReportService:IReportService
@@ -121,7 +146,21 @@ public class ReportService:IReportService
         _db = context;
         _logger = logger;
     }
-    
+    private bool IsMet(decimal? actual, decimal? target, string? op)
+    {
+        if (!actual.HasValue || !target.HasValue || string.IsNullOrEmpty(op))
+            return false;
+
+        return op switch
+        {
+            ">=" => actual < target,
+            "<=" => actual > target,
+            ">"  => actual <= target,
+            "<"  => actual >= target,
+            "=" or "==" => actual != target,
+            _ => false
+        };
+    }
     public async Task<List<int>> GetOrganizationIdsWithSuggestDataAsync()
     {
         var orgIds = await _db.SuggestDates
@@ -534,4 +573,166 @@ public class ReportService:IReportService
 
         return unmet;
     }
+    
+    // public async Task<List<KpiTrendDto>> GetTrendDataAsync(int? organizationId, int startYear, int endYear)
+    // {
+    //     var kpiDatasQuery = _db.KpiDatas
+    //         .Include(d => d.KpiReports)
+    //         .Include(d => d.DetailItem.KpiItem.KpiField)
+    //         .Where(d =>
+    //             d.DetailItem.IsIndicator &&
+    //             d.KpiReports.Any(r =>
+    //                 r.Status == ReportStatus.Finalized &&
+    //                 r.Year >= startYear &&
+    //                 r.Year <= endYear));
+    //
+    //     // ✅ 加上組織篩選（只比對自身，不展開子組織）
+    //     if (organizationId.HasValue)
+    //     {
+    //         kpiDatasQuery = kpiDatasQuery.Where(d => d.OrganizationId == organizationId.Value);
+    //     }
+    //
+    //     var kpiDatas = await kpiDatasQuery.ToListAsync();
+    //
+    //     var allEntries = new List<(string Period, string Field, bool IsMet)>();
+    //
+    //     foreach (var data in kpiDatas)
+    //     {
+    //         var field = data.DetailItem.KpiItem.KpiField.enfield;
+    //         var target = data.TargetValue;
+    //         var op = data.DetailItem.ComparisonOperator;
+    //
+    //         if (!target.HasValue || string.IsNullOrEmpty(op)) continue;
+    //
+    //         foreach (var report in data.KpiReports
+    //                      .Where(r => r.Status == ReportStatus.Finalized &&
+    //                                  r.Year >= startYear &&
+    //                                  r.Year <= endYear))
+    //         {
+    //             var actual = report.KpiReportValue;
+    //             if (!actual.HasValue) continue;
+    //
+    //             var met = op switch
+    //             {
+    //                 ">=" => actual < target,
+    //                 "<=" => actual > target,
+    //                 ">"  => actual <= target,
+    //                 "<"  => actual >= target,
+    //                 "=" or "==" => actual != target,
+    //                 _ => true
+    //             };
+    //
+    //             var period = $"{report.Year}{report.Period}";
+    //             allEntries.Add((period, field, met));
+    //            
+    //         }
+    //     }
+    //     Console.WriteLine($"✅ {allEntries}");
+    //     var result = allEntries
+    //         .GroupBy(e => new { e.Period, e.Field })
+    //         .Select(g =>
+    //         {
+    //             var total = g.Count();
+    //             var met = g.Count(x => x.IsMet);
+    //             var percentage = total > 0 ? Math.Round((decimal)met / total * 100, 2) : 0;
+    //
+    //             return new KpiTrendDto
+    //             {
+    //                 Period = g.Key.Period,
+    //                 Field = g.Key.Field,
+    //                 Percentage = percentage
+    //             };
+    //         })
+    //         .OrderBy(x => x.Period)
+    //         .ThenBy(x => x.Field)
+    //         .ToList();
+    //
+    //     return result;
+    // }
+    
+    public async Task<List<KpiReportStatDto>> GetTrendDataAsync(
+    int? organizationId = null,
+    int? startYear = null,
+    int? endYear = null,
+    string? startQuarter = null,
+    string? endQuarter = null,
+    string? fieldName = null)
+{
+    int QuarterOrder(string q) => q switch
+    {
+        "Q1" => 1,
+        "Q2" => 2,
+        "Q3" => 3,
+        "Q4" => 4,
+        "Y" => 5,
+        _ => 0
+    };
+
+    var query = _db.KpiDatas
+        .Include(d => d.DetailItem)
+            .ThenInclude(di => di.KpiItem)
+                .ThenInclude(i => i.KpiField)
+        .Include(d => d.KpiReports)
+        .AsQueryable();
+
+    if (organizationId.HasValue)
+    {
+        query = query.Where(d => d.Organization.Id == organizationId.Value);
+    }
+
+    if (!string.IsNullOrWhiteSpace(fieldName))
+    {
+        query = query.Where(d => d.DetailItem.KpiItem.KpiField.field == fieldName);
+    }
+
+    if (startYear.HasValue || endYear.HasValue)
+    {
+        query = query.Where(d => d.KpiReports.Any(r =>
+            (!startYear.HasValue || r.Year >= startYear) &&
+            (!endYear.HasValue || r.Year <= endYear)));
+    }
+
+    var rawData = await query.ToListAsync();
+
+    var allReports = rawData
+        .Where(d => d.DetailItem.IsIndicator)
+        .SelectMany(d =>
+            d.KpiReports
+                .Where(r =>
+                    r.Status == ReportStatus.Finalized &&
+                    (!startYear.HasValue || r.Year > startYear || (r.Year == startYear && (
+                        string.IsNullOrEmpty(startQuarter) || QuarterOrder(r.Period) >= QuarterOrder(startQuarter)
+                    ))) &&
+                    (!endYear.HasValue || r.Year < endYear || (r.Year == endYear && (
+                        string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)
+                    )))
+                )
+                .Select(r => new
+                {
+                    FieldName = d.DetailItem.KpiItem.KpiField.field,
+                    r.Year,
+                    r.Period,
+                    Actual = r.KpiReportValue,
+                    Target = d.TargetValue,
+                    Operator = d.DetailItem.ComparisonOperator,
+                    IsMet = IsMet(r.KpiReportValue, d.TargetValue, d.DetailItem.ComparisonOperator)
+                })
+        );
+
+    var grouped = allReports
+        .GroupBy(r => new { r.FieldName, r.Year, r.Period })
+        .Select(g => new KpiReportStatDto
+        {
+            Field = g.Key.FieldName,
+            Year = g.Key.Year,
+            Period = g.Key.Period,
+            TotalCount = g.Count(),
+            MetCount = g.Count(r => r.IsMet)
+        })
+        .OrderBy(s => s.Year)
+        .ThenBy(s => QuarterOrder(s.Period))
+        .ToList();
+
+    return grouped;
+}
 }
