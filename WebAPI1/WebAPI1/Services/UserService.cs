@@ -50,16 +50,18 @@ public class RegisterUserDto
 public class LoginResultDto
 {
     public bool Success { get; set; }
-    public string Message { get; set; }
-    
-    public string RefreshToken { get; set; }
-    public string Token { get; set; }
-    public string Nickname { get; set; }
-    public string Email { get; set; }
-    // 強制要求使用者變更密碼（過期或初次登入）
+    public string? Message { get; set; }
+
+    public string? Token { get; set; }
+    public string? RefreshToken { get; set; }
+    public string? Nickname { get; set; }
+    public string? Email { get; set; }
+
+    // ⬇️ 新增的結構化欄位
+    public string? WarningMessage { get; set; }           // 將到期提醒（人類可讀）
+    public DateTimeOffset? PasswordExpiryAt { get; set; } // 密碼到期時間
+    public int? DaysUntilExpiry { get; set; }             // 剩餘天數（無條件進位）
     public bool ForceChangePassword { get; set; } = false;
-    // 🔔 新增：是否提醒密碼即將過期
-    public bool ShowPasswordExpiryWarning { get; set; } = false;
 }
 
 public class UpdateUserDto
@@ -193,102 +195,104 @@ public class UserService:IUserService
     
     public async Task<LoginResultDto> VerifyUserLoginAsync(LoginDto dto)
     {
+        // 時間統一取台灣時間（你現有的工具）
+        var now = tool.GetTaiwanNow();
+
+        // 讀取使用者與密碼策略
         var user = await _db.Users
             .Include(u => u.PasswordPolicy)
-            .Where(u => u.Email == dto.Usermail)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(u => u.Email == dto.Usermail);
 
+        // 避免帳號枚舉：不要暴露「使用者不存在」，統一錯誤訊息
         if (user == null)
         {
-            return new LoginResultDto { Success = false, Message = "使用者不存在" };
-        }
-
-        // 檢查帳號是否被鎖定
-        if (user.PasswordLockedUntil.HasValue && user.PasswordLockedUntil.Value > tool.GetTaiwanNow())
-        {
-            return new LoginResultDto { Success = false, Message = $"帳號已鎖定，請於 {user.PasswordLockedUntil.Value:yyyy-MM-dd HH:mm} 後再試" };
-        }
-
-        if (!Argon2.Verify(user.PasswordHash, dto.Password))
-        {
-            user.PasswordFailedAttempts++;
-            
-            // 檢查是否需要鎖定
-            var policy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
-            if (policy != null && user.PasswordFailedAttempts >= policy.LockoutThreshold)
-            {
-                user.PasswordLockedUntil = tool.GetTaiwanNow().AddMinutes(policy.LockoutDurationMinutes);
-            }
-
-            await _db.SaveChangesAsync();
-
+            await Task.Delay(50); // 輕微延遲，拉齊時間側信道（可選）
             return new LoginResultDto { Success = false, Message = "帳號或密碼錯誤" };
         }
 
-        // 驗證成功：重置失敗次數與鎖定狀態
+        // 鎖定檢查
+        if (user.PasswordLockedUntil.HasValue && user.PasswordLockedUntil.Value > now)
+        {
+            return new LoginResultDto
+            {
+                Success = false,
+                Message = $"帳號已鎖定，請於 {user.PasswordLockedUntil.Value:yyyy-MM-dd HH:mm} 後再試"
+            };
+        }
+
+        // 密碼驗證
+        if (!Argon2.Verify(user.PasswordHash, dto.Password))
+        {
+            user.PasswordFailedAttempts++;
+
+            var policy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
+            if (policy != null && user.PasswordFailedAttempts >= policy.LockoutThreshold)
+            {
+                user.PasswordLockedUntil = now.AddMinutes(policy.LockoutDurationMinutes);
+            }
+
+            await _db.SaveChangesAsync();
+            return new LoginResultDto { Success = false, Message = "帳號或密碼錯誤" };
+        }
+
+        // 驗證成功：重置狀態
         user.PasswordFailedAttempts = 0;
         user.PasswordLockedUntil = null;
-        user.LastLoginAt = tool.GetTaiwanNow();
+        user.LastLoginAt = now;
 
-        // 取得密碼策略
         var currentPolicy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
-        
-        var permissions = await _db.UserRoles
-            .Where(ur => ur.UserId == user.Id)
-            .SelectMany(ur => ur.Role.RolePermissions)
-            .Select(rp => rp.Permission.Key)
-            .Distinct()
-            .ToListAsync();
-        
-        // 檢查密碼是否已過期或即將過期
+
+        // 密碼到期邏輯（結構化欄位）
+        string? warningMessage = null;
+        DateTime? expiryDate = null;
+        int? daysUntilExpiry = null;
+
         if (currentPolicy?.PasswordExpiryDays > 0)
         {
             var passwordSetTime = user.PasswordChangedAt ?? user.CreatedAt;
-            var expiryDate = passwordSetTime.AddDays(currentPolicy.PasswordExpiryDays);
-            var daysUntilExpiry = (expiryDate - tool.GetTaiwanNow()).TotalDays;
-            var now = tool.GetTaiwanNow();
-            
-            if (tool.GetTaiwanNow() > expiryDate)
+            expiryDate = passwordSetTime.AddDays(currentPolicy.PasswordExpiryDays);
+            var remaining = expiryDate.Value - now;
+            daysUntilExpiry = (int)Math.Ceiling(remaining.TotalDays);
+
+            if (now > expiryDate.Value)
             {
+                await _db.SaveChangesAsync();
+
                 return new LoginResultDto
                 {
                     Success = false,
                     Message = "密碼已過期，請重設密碼",
-                    ForceChangePassword = true
+                    ForceChangePassword = true,
+                    PasswordExpiryAt = new DateTimeOffset(expiryDate.Value),
+                    DaysUntilExpiry = 0
                 };
             }
-            else if (daysUntilExpiry <= currentPolicy.PasswordExpiryWarningDays)
+            else if (remaining.TotalDays <= currentPolicy.PasswordExpiryWarningDays)
             {
+                // 當天提醒一次
                 if (user.LastPasswordExpiryReminder == null || user.LastPasswordExpiryReminder.Value.Date < now.Date)
                 {
                     user.LastPasswordExpiryReminder = now;
-                    await _db.SaveChangesAsync();
-
-                    var remaining = expiryDate - now;
-                    var message = $"密碼將於 {expiryDate:yyyy-MM-dd HH:mm:ss} 過期（剩餘 {remaining.Days} 天 {remaining.Hours} 小時 {remaining.Minutes} 分鐘），將會強制變更密碼";
-
-                    return new LoginResultDto
-                    {
-                        Success = true,
-                        Message = message,
-                        Token = await _authService.GenerateAccessToken(user.Id.ToString()),
-                        Nickname = user.Nickname,
-                        Email = user.Email
-                    };
+                    warningMessage =
+                        $"密碼將於 {expiryDate:yyyy-MM-dd HH:mm:ss} 過期（剩餘 {Math.Max(daysUntilExpiry.Value, 0)} 天），將會強制變更密碼";
                 }
             }
         }
 
         await _db.SaveChangesAsync();
 
+        // 簽發 Token（提醒仍為成功登入）
         var accessToken = await _authService.GenerateAccessToken(user.Id.ToString());
         var refreshToken = _authService.GenerateRefreshToken(user.Id.ToString());
-        // _authService.SetRefreshTokenCookie(refreshToken);
+        // _authService.SetRefreshTokenCookie(refreshToken); // 如需 Cookie 可打開
 
         return new LoginResultDto
         {
             Success = true,
             Message = "登入成功",
+            WarningMessage = warningMessage,
+            PasswordExpiryAt = expiryDate.HasValue ? new DateTimeOffset(expiryDate.Value) : null,
+            DaysUntilExpiry = daysUntilExpiry,
             Token = accessToken,
             RefreshToken = refreshToken,
             Nickname = user.Nickname,
@@ -338,16 +342,74 @@ public class UserService:IUserService
         var user = await _db.Users.FindAsync(id);
         if (user == null) return false;
 
-        // ✅ 驗證舊密碼
+        // 1) 驗證舊密碼
         if (!Argon2.Verify(user.PasswordHash, oldPassword))
+            throw new ArgumentException("OLD_PASSWORD_INCORRECT");
+
+        // 2) 後端再驗一次密碼政策（至少 12 碼，含大小寫、數字、特殊字元）
+        if (!IsPasswordValid(newPassword))
+            throw new ArgumentException("PASSWORD_POLICY_NOT_MET");
+
+        // 3) 不可與目前密碼相同
+        if (Argon2.Verify(user.PasswordHash, newPassword))
+            throw new InvalidOperationException("PASSWORD_REUSE_CURRENT");
+
+        // 4) 讀取最近三筆歷史並比對
+        var last3 = await _db.UserRPasswordHistories
+            .Where(h => h.UserId == id)
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(3)
+            .ToListAsync();
+
+        foreach (var h in last3)
         {
-            throw new ArgumentException("舊密碼錯誤");
+            if (Argon2.Verify(h.PasswordHash, newPassword))
+                throw new InvalidOperationException("PASSWORD_REUSE_LAST3");
         }
 
-        // ✅ 更新新密碼（使用 Argon2 雜湊）
+        // 5) 交易：寫入歷史 + 更新新密碼 + 裁剪歷史
+        using var tx = await _db.Database.BeginTransactionAsync();
+
+        // 5-1) 先把「舊密碼 hash」存進歷史（CreatedAt 用你的 tool）
+        await _db.UserRPasswordHistories.AddAsync(new UserPasswordHistory
+        {
+            UserId = user.Id,
+            PasswordHash = user.PasswordHash,                     // ← 存舊的 hash
+            Salt = [],                      // ← 若你把欄位改可空，這裡可改成 null
+            CreatedAt = tool.GetTaiwanNow(),
+        });
+
+        // 5-2) 變更為新密碼（Argon2 自含 salt）
         user.PasswordHash = Argon2.Hash(newPassword);
         await _db.SaveChangesAsync();
+
+        // 5-3) 只保留最近 10 筆歷史（可依需求調整）
+        var toDelete = await _db.UserRPasswordHistories
+            .Where(h => h.UserId == id)
+            .OrderByDescending(h => h.CreatedAt)
+            .Skip(10)
+            .ToListAsync();
+
+        if (toDelete.Count > 0)
+        {
+            _db.UserRPasswordHistories.RemoveRange(toDelete);
+            await _db.SaveChangesAsync();
+        }
+
+        await tx.CommitAsync();
         return true;
+    }
+
+    // --- 小工具 ---
+    private static bool IsPasswordValid(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password)) return false;
+        if (password.Length < 12) return false;
+        bool hasUpper = password.Any(char.IsUpper);
+        bool hasLower = password.Any(char.IsLower);
+        bool hasDigit = password.Any(char.IsDigit);
+        bool hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+        return hasUpper && hasLower && hasDigit && hasSymbol;
     }
     
     public async Task<bool> ResetPasswordAsync(string email, string newPassword)

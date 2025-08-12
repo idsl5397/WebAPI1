@@ -15,8 +15,8 @@ namespace WebAPI1.Controllers
     
     public class LoginDto
     {
-        public string Usermail { get; set; }
-        public string Password { get; set; }
+        public string Usermail { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
     
     [Route("[controller]")]
@@ -26,12 +26,14 @@ namespace WebAPI1.Controllers
         private readonly ISHAuditDbcontext _db;
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(ISHAuditDbcontext db, IConfiguration configuration, IUserService userService)
+        public UserController(ISHAuditDbcontext db, IConfiguration configuration, IUserService userService, ILogger<UserController> logger)
         {
             _db = db;
             _configuration = configuration;
             _userService = userService;
+            _logger = logger;
         }
         
         private string GenerateJwtToken(string username, SymmetricSecurityKey key)
@@ -48,15 +50,23 @@ namespace WebAPI1.Controllers
         }
         
         
+        /// <summary>登入</summary>
         [HttpPost("login")]
+        [Consumes("application/json")]
+        [ProducesResponseType(typeof(LoginResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(LoginResultDto), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             var result = await _userService.VerifyUserLoginAsync(loginDto);
-            if (!result.Success)
-                return Unauthorized(new { result.Message });
 
-            return Ok(result
-            );
+            if (!result.Success)
+            {
+                // 包含：密碼已過期（ForceChangePassword = true）、鎖定、帳密錯誤
+                return Unauthorized(result);
+            }
+
+            // 成功：可能包含 WarningMessage（進入到期警示期）
+            return Ok(result);
         }
         
         
@@ -125,19 +135,46 @@ namespace WebAPI1.Controllers
         [HttpPut("{id}/ChangePassword")]
         public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDto dto)
         {
+            if (dto is null || string.IsNullOrWhiteSpace(dto.OldPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+                return BadRequest(new { code = "INVALID_REQUEST", message = "請填寫所有密碼欄位。" });
+
+            // （可選）安全起見，再確認 JWT 內的使用者就是自己，不得幫別人改
+            // var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            // if (!Guid.TryParse(sub, out var currentUserId) || currentUserId != id)
+            //     return Forbid();
+
             try
             {
-                var success = await _userService.ChangePasswordAsync(id, dto.OldPassword, dto.NewPassword);
-                if (!success) return NotFound();
-                return Ok();
+                var ok = await _userService.ChangePasswordAsync(id, dto.OldPassword, dto.NewPassword);
+                if (!ok) return NotFound(new { code = "USER_NOT_FOUND" });
+
+                return Ok(new { message = "Password changed." });
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException ex) when (ex.Message == "OLD_PASSWORD_INCORRECT")
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { code = "OLD_PASSWORD_INCORRECT", message = "舊密碼錯誤，請重新輸入。" });
             }
-            catch (Exception)
+            catch (ArgumentException ex) when (ex.Message == "PASSWORD_POLICY_NOT_MET")
             {
-                return StatusCode(500, "伺服器錯誤，請稍後再試");
+                // 422 Unprocessable Entity：語意正確但不符合政策
+                return UnprocessableEntity(new
+                {
+                    code = "PASSWORD_POLICY_NOT_MET",
+                    message = "新密碼不符合安全要求（至少12碼且含大小寫、數字、特殊字元）。"
+                });
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "PASSWORD_REUSE_CURRENT")
+            {
+                return Conflict(new { code = "PASSWORD_REUSE_CURRENT", message = "新密碼不得與目前使用中的密碼相同。" });
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "PASSWORD_REUSE_LAST3")
+            {
+                return Conflict(new { code = "PASSWORD_REUSE_LAST3", message = "新密碼不得與最近三次使用過的密碼相同。" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ChangePassword failed for user {UserId}", id);
+                return StatusCode(500, new { code = "INTERNAL_ERROR", message = "密碼修改失敗，請稍後再試。" });
             }
         }
         

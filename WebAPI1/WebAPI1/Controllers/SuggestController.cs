@@ -123,7 +123,7 @@ public class SuggestController: ControllerBase
     }
     
     /// <summary>
-    /// 批次匯入KPI資料
+    /// 批次匯入委員建議資料
     /// </summary>
     [HttpPost("import-confirm")]
     public async Task<IActionResult> BatchImportConfirm([FromBody] List<SuggestmanyRow> rows)
