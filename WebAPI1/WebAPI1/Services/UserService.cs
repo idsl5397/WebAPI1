@@ -246,8 +246,17 @@ public class UserService:IUserService
         string? warningMessage = null;
         DateTime? expiryDate = null;
         int? daysUntilExpiry = null;
-
-        if (currentPolicy?.PasswordExpiryDays > 0)
+        if (user.ForceChangePassword)
+        {
+            return new LoginResultDto
+            {
+                Success = false,
+                Message = "請更改密碼",
+                ForceChangePassword = true
+            };
+            
+        }
+        if (currentPolicy?.PasswordExpiryDays > 0 )
         {
             var passwordSetTime = user.PasswordChangedAt ?? user.CreatedAt;
             expiryDate = passwordSetTime.AddDays(currentPolicy.PasswordExpiryDays);
@@ -419,6 +428,7 @@ public class UserService:IUserService
         
         // ✅ 更新新密碼（使用 Argon2 雜湊）
         user.PasswordHash = Argon2.Hash(newPassword);
+        user.PasswordChangedAt = tool.GetTaiwanNow();
         await _db.SaveChangesAsync();
         return true;
     }
