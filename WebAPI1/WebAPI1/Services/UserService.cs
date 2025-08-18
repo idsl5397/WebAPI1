@@ -390,6 +390,7 @@ public class UserService:IUserService
 
         // 5-2) 變更為新密碼（Argon2 自含 salt）
         user.PasswordHash = Argon2.Hash(newPassword);
+        user.PasswordChangedAt = tool.GetTaiwanNow();
         await _db.SaveChangesAsync();
 
         // 5-3) 只保留最近 10 筆歷史（可依需求調整）

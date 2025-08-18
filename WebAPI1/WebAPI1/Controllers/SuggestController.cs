@@ -27,6 +27,7 @@ public class SuggestController: ControllerBase
 
     
     [HttpGet("GetAllSuggest")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<SuggestDto>>> GetAll([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear, [FromQuery] string? keyword)
     {
         var suggests = await _suggestService.GetAllSuggestsAsync(organizationId, startYear, endYear, keyword);
@@ -113,12 +114,14 @@ public class SuggestController: ControllerBase
     
     // 上傳Excel並預覽前五筆
     [HttpPost("import-preview")]
-    public async Task<IActionResult> ImportPreview([FromForm] IFormFile file)
+    public async Task<IActionResult> ImportPreview([FromForm] IFormFile file, [FromForm] int organizationId)
     {
         if (file == null || file.Length == 0)
             return BadRequest("請上傳檔案。");
 
-        var previewData = await _suggestService.ParseExcelAsync(file.OpenReadStream());
+        using var stream = file.OpenReadStream();
+        
+        var previewData = await _suggestService.ParseExcelAsync(stream, organizationId);
         return Ok(previewData);
     }
     
@@ -126,20 +129,13 @@ public class SuggestController: ControllerBase
     /// 批次匯入委員建議資料
     /// </summary>
     [HttpPost("import-confirm")]
-    public async Task<IActionResult> BatchImportConfirm([FromBody] List<SuggestmanyRow> rows)
+    public async Task<IActionResult> BatchImportConfirm([FromBody] SuggestImportConfirmDto dto)
     {
-        if (rows == null || rows.Count == 0)
-            return BadRequest(new { success = false, message = "無匯入資料" });
+        if (dto.Rows == null || dto.Rows.Count == 0)
+            return BadRequest(new { message = "請提供匯入資料。" });
 
-        var result = await _suggestService.BatchInsertSuggestAsync(rows);
-
-        return Ok(new
-        {
-            success = result.Success,
-            message = result.Message,
-            successCount = result.SuccessCount,
-            failCount = result.FailCount
-        });
+        var (success, msg)= await _suggestService.BatchInsertSuggestAsync(dto.OrganizationId, dto.Rows);
+        return success ? Ok(new { message = msg }) : BadRequest(new { message = msg });
     }
     
     [HttpGet("download-template")]

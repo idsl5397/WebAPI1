@@ -134,12 +134,14 @@ public class KpiController: ControllerBase
     
     // 上傳Excel並預覽前五筆
     [HttpPost("import-preview")]
-    public async Task<IActionResult> ImportPreview([FromForm] IFormFile file)
+    public async Task<IActionResult> ImportPreview([FromForm] IFormFile file, [FromForm] int organizationId)
     {
         if (file == null || file.Length == 0)
             return BadRequest("請上傳檔案。");
-
-        var previewData = await _kpiService.ParseExcelAsync(file.OpenReadStream());
+        
+        using var stream = file.OpenReadStream();
+        
+        var previewData = await _kpiService.ParseExcelAsync(stream, organizationId);
         return Ok(previewData);
     }
     
@@ -147,31 +149,13 @@ public class KpiController: ControllerBase
     /// 批次匯入KPI資料
     /// </summary>
     [HttpPost("import-confirm")]
-    public async Task<IActionResult> BatchImportConfirm([FromBody] List<KpimanyRow> rows)
+    public async Task<IActionResult> ImportConfirm([FromBody] KpiImportConfirmDto dto)
     {
-        if (rows == null || rows.Count == 0)
-        {
-            return BadRequest("匯入資料為空！");
-        }
+        if (dto.Rows == null || dto.Rows.Count == 0)
+            return BadRequest(new { message = "請提供匯入資料。" });
 
-        var (success, message) = await _kpiService.BatchInsertKpiDataAsync(rows);
-
-        if (success)
-        {
-            return Ok(new
-            {
-                success = true,
-                message
-            });
-        }
-        else
-        {
-            return BadRequest(new
-            {
-                success = false,
-                message
-            });
-        }
+        var (success, msg) = await _kpiService.BatchInsertKpiDataAsync(dto.OrganizationId, dto.Rows);
+        return success ? Ok(new { message = msg }) : BadRequest(new { message = msg });
     }
     
     

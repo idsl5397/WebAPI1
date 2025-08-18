@@ -10,6 +10,12 @@ using Exception = System.Exception;
 
 namespace WebAPI1.Services;
 
+public class SuggestImportConfirmDto
+{
+    public int OrganizationId { get; set; }
+    public List<SuggestmanyRow> Rows { get; set; }
+}
+
 public class DateOnlyJsonConverter : JsonConverter<DateTime>
 {
     private const string Format = "yyyy-MM-dd";
@@ -135,6 +141,7 @@ public class SuggestDto
     public string? ExecPlan { get; set; }
     public string? Remark { get; set; }
     public string? OrganizationName { get; set; }
+    public int? organizationId { get; set; }
     public string? KpiFieldName { get; set; }
     public string? UserName { get; set; }
 }
@@ -145,10 +152,9 @@ public interface ISuggestService
     Task<List<SuggestDto>> GetAllSuggestDatesAsync(int? organizationId = null, string? keyword = null);
     Task<SuggestDetailDto?> GetSuggestDetailAsync(int id);
     Task<(bool Success, string Message)> ImportSingleSuggestAsync(AddSuggestDto dto);
-    Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream);
+    Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream, int organizationId);
 
-    Task<(bool Success, string Message, int SuccessCount, int FailCount)> BatchInsertSuggestAsync(
-        List<SuggestmanyRow> rows);
+    Task<(bool Success, string Message)> BatchInsertSuggestAsync(int organizationId, List<SuggestmanyRow> rows);
 
     Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId);
     Task<List<object>> PreviewAsync(IFormFile file);
@@ -345,6 +351,7 @@ public class SuggestService:ISuggestService
         {
             Id = d.Id,
             Date = d.Date,
+            organizationId = d.OrganizationId,
             OrganizationName = d.Organization?.Name,
             SuggestEventTypeName = d.SuggestEventType?.Name,
         }).ToList();
@@ -506,12 +513,18 @@ public class SuggestService:ISuggestService
         }
     }
     
-    public async Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream)
+    public async Task<List<SuggestmanyRow>> ParseExcelAsync(Stream fileStream, int organizationId)
     {
         var workbook = new XSSFWorkbook(fileStream);
         var sheet = workbook.GetSheetAt(0); // 第一個工作表
         var result = new List<SuggestmanyRow>();
 
+        // 🏷 依照傳入的 organizationId 查出資料庫中的名稱
+        var organization = await _db.Organizations
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync();
+        
         // 從第2行（index = 1）開始讀，因為第1行是標題
         for (int rowIndex = 1; rowIndex <= sheet.LastRowNum; rowIndex++)
         {
@@ -520,25 +533,25 @@ public class SuggestService:ISuggestService
 
             var dto = new SuggestmanyRow
             {
-                OrganizationId = int.TryParse(GetCellString(row.GetCell(0)), out var orgId) ? orgId : 0,
-                Organization = GetCellString(row.GetCell(1)),
-                Date = GetCellDate(row.GetCell(2)) ?? DateTime.Now,
-                SuggestEventType = GetCellString(row.GetCell(3)),
-                FieldName = GetCellString(row.GetCell(4)),
-                UserName = GetCellString(row.GetCell(5)),
-                SuggestionContent = GetCellString(row.GetCell(6)),
-                SuggestionType = GetCellString(row.GetCell(7)),
-                RespDept = GetCellString(row.GetCell(8)),
-                IsAdoptedName = GetCellString(row.GetCell(9)),
-                ImproveDetails = GetCellString(row.GetCell(10)),
-                Manpower = (int?)GetCellDecimal(row.GetCell(11)),
-                Budget = GetCellDecimal(row.GetCell(12)),
-                CompletedName = GetCellString(row.GetCell(13)),
-                DoneYear = (int?)GetCellDecimal(row.GetCell(14)),
-                DoneMonth = (int?)GetCellDecimal(row.GetCell(15)),
-                ParallelExecName = GetCellString(row.GetCell(16)),
-                ExecPlan = GetCellString(row.GetCell(17)),
-                Remark = GetCellString(row.GetCell(18)),
+                OrganizationId = organizationId,     // ✅ 固定用傳入的 ID
+                Organization = organization,         // ✅ 用資料庫查出名稱
+                Date = GetCellDate(row.GetCell(0)) ?? DateTime.Now,
+                SuggestEventType = GetCellString(row.GetCell(1)),
+                FieldName = GetCellString(row.GetCell(2)),
+                UserName = GetCellString(row.GetCell(3)),
+                SuggestionContent = GetCellString(row.GetCell(4)),
+                SuggestionType = GetCellString(row.GetCell(5)),
+                RespDept = GetCellString(row.GetCell(6)),
+                IsAdoptedName = GetCellString(row.GetCell(7)),
+                ImproveDetails = GetCellString(row.GetCell(8)),
+                Manpower = (int?)GetCellDecimal(row.GetCell(9)),
+                Budget = GetCellDecimal(row.GetCell(10)),
+                CompletedName = GetCellString(row.GetCell(11)),
+                DoneYear = (int?)GetCellDecimal(row.GetCell(12)),
+                DoneMonth = (int?)GetCellDecimal(row.GetCell(13)),
+                ParallelExecName = GetCellString(row.GetCell(14)),
+                ExecPlan = GetCellString(row.GetCell(15)),
+                Remark = GetCellString(row.GetCell(16)),
             };
 
             result.Add(dto);
@@ -547,10 +560,10 @@ public class SuggestService:ISuggestService
         return result;
     }
     
-    public async Task<(bool Success, string Message, int SuccessCount, int FailCount)> BatchInsertSuggestAsync(List<SuggestmanyRow> rows)
+    public async Task<(bool Success, string Message)> BatchInsertSuggestAsync(int organizationId, List<SuggestmanyRow> rows)
     {
         if (rows == null || rows.Count == 0)
-            return (false, "無資料可匯入", 0, 0);
+            return (false, "無資料可匯入");
 
         using var transaction = await _db.Database.BeginTransactionAsync();
         var now = tool.GetTaiwanNow();
@@ -762,7 +775,7 @@ public class SuggestService:ISuggestService
             summary += "\n👉 其餘詳見 log 檔案";
         }
 
-        return (true, summary, successCount, failCount);
+        return (true, summary);
     }
     
     public async Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId)

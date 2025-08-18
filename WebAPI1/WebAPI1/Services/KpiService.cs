@@ -7,6 +7,11 @@ using WebAPI1.Entities;
 
 namespace WebAPI1.Services;
 
+public class KpiImportConfirmDto
+{
+    public int OrganizationId { get; set; }
+    public List<KpimanyRow> Rows { get; set; }
+}
 
 public class KpiFieldOptionDto
 {
@@ -236,9 +241,9 @@ public interface IKpiService
         string? fieldName = null);
     
     //使用者匯入績效指標資料前顯示使用
-    Task<List<KpimanyRow>> ParseExcelAsync(Stream fileStream);
+    Task<List<KpimanyRow>> ParseExcelAsync(Stream fileStream, int organizationId);
     //使用者匯入績效指標資料
-    Task<(bool Success, string Message)> BatchInsertKpiDataAsync(List<KpimanyRow> rows);
+    Task<(bool Success, string Message)> BatchInsertKpiDataAsync(int organizationId, List<KpimanyRow> rows);
 
     //系統使用者匯入所有資料前顯示使用
     List<KpiimportexcelDto> ParseFullImportExcel(Stream fileStream);
@@ -1074,13 +1079,22 @@ public class KpiService:IKpiService
         }
     }
     
-    public async Task<List<KpimanyRow>> ParseExcelAsync(Stream fileStream)
+    public async Task<List<KpimanyRow>> ParseExcelAsync(Stream fileStream, int organizationId)
     {
         var workbook = new XSSFWorkbook(fileStream);
         var sheet = workbook.GetSheetAt(0); // 第一個工作表
         var result = new List<KpimanyRow>();
 
-        // 從第2行（index = 1）開始讀，因為第1行是標題
+        // 🏷 依照傳入的 organizationId 查出資料庫中的名稱
+        var organization = await _db.Organizations
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync();
+
+        if (organization == null)
+            throw new Exception($"找不到 Id 為 {organizationId} 的組織");
+
+        // 從第2行開始讀
         for (int rowIndex = 1; rowIndex <= sheet.LastRowNum; rowIndex++)
         {
             var row = sheet.GetRow(rowIndex);
@@ -1088,22 +1102,22 @@ public class KpiService:IKpiService
 
             var dto = new KpimanyRow
             {
-                OrganizationId = int.TryParse(GetCellString(row.GetCell(0)), out var orgId) ? orgId : 0,
-                Organization = GetCellString(row.GetCell(1)),
-                ProductionSite = GetCellString(row.GetCell(2)),
-                KpiCategoryName = GetCellString(row.GetCell(3)),
-                FieldName = GetCellString(row.GetCell(4)),
-                IndicatorName = GetCellString(row.GetCell(5)),
-                DetailItemName = GetCellString(row.GetCell(6)),
-                Unit = GetCellString(row.GetCell(7)),
-                IsIndicator = ConvertYesNoToBool(GetCellString(row.GetCell(8))),
-                IsApplied = GetCellString(row.GetCell(9)) == "是",
-                KpiCycleName = GetCellString(row.GetCell(10)),
-                BaselineYear = GetCellString(row.GetCell(11)),
-                BaselineValue = GetCellDecimal(row.GetCell(12)),
-                ComparisonOperator = GetCellString(row.GetCell(13)),
-                TargetValue = GetCellDecimal(row.GetCell(14)),
-                Remarks = GetCellString(row.GetCell(15))
+                OrganizationId = organizationId,     // ✅ 固定用傳入的 ID
+                Organization = organization,         // ✅ 用資料庫查出名稱
+                ProductionSite = GetCellString(row.GetCell(0)),
+                KpiCategoryName = GetCellString(row.GetCell(1)),
+                FieldName = GetCellString(row.GetCell(2)),
+                IndicatorName = GetCellString(row.GetCell(3)),
+                DetailItemName = GetCellString(row.GetCell(4)),
+                Unit = GetCellString(row.GetCell(5)),
+                IsIndicator = ConvertYesNoToBool(GetCellString(row.GetCell(6))),
+                IsApplied = GetCellString(row.GetCell(7)) == "是",
+                KpiCycleName = GetCellString(row.GetCell(8)),
+                BaselineYear = GetCellString(row.GetCell(9)),
+                BaselineValue = GetCellDecimal(row.GetCell(10)),
+                ComparisonOperator = GetCellString(row.GetCell(11)),
+                TargetValue = GetCellDecimal(row.GetCell(12)),
+                Remarks = GetCellString(row.GetCell(13))
             };
 
             result.Add(dto);
@@ -1111,8 +1125,9 @@ public class KpiService:IKpiService
 
         return result;
     }
+    
     // 確認後正式存入資料庫
-    public async Task<(bool Success, string Message)> BatchInsertKpiDataAsync(List<KpimanyRow> rows)
+    public async Task<(bool Success, string Message)> BatchInsertKpiDataAsync(int organizationId, List<KpimanyRow> rows)
     {
         if (rows == null || rows.Count == 0)
             return (false, "沒有任何資料可匯入。");
@@ -1126,27 +1141,19 @@ public class KpiService:IKpiService
         int failCount = 0;
         List<string> failDetails = new();
 
-        // 預先查出所有領域
+        // 資料快取區
         var allFieldsList = await _db.KpiFields.ToListAsync();
-        
-        // 一次查好基礎資料，放到記憶體Dictionary加速
         var allKpiCycles = await _db.KpiCycles.ToListAsync();
         var allOrganizations = await _db.Organizations.ToDictionaryAsync(o => o.Id);
         var allFields = allFieldsList
-            .SelectMany(f => new[]
-            {
+            .SelectMany(f => new[] {
                 new { Key = f.field?.Trim().ToLower(), Value = f },
                 new { Key = f.enfield?.Trim().ToLower(), Value = f }
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Key))
             .ToDictionary(x => x.Key, x => x.Value);
-        var allKpiItems = await _db.KpiItems
-            .Include(i => i.KpiItemNames)
-            .ToListAsync();
-
-        var allDetailItems = await _db.KpiDetailItems
-            .Include(d => d.KpiDetailItemNames)
-            .ToListAsync();
+        var allKpiItems = await _db.KpiItems.Include(i => i.KpiItemNames).ToListAsync();
+        var allDetailItems = await _db.KpiDetailItems.Include(d => d.KpiDetailItemNames).ToListAsync();
 
         try
         {
@@ -1154,24 +1161,19 @@ public class KpiService:IKpiService
             {
                 try
                 {
-                    // 1. 公司
+                    // ✅ 強制以傳入的 organizationId 為主
+                    row.OrganizationId = organizationId;
+
                     if (!allOrganizations.TryGetValue(row.OrganizationId, out var organization))
-                        throw new Exception($"找不到公司：{row.OrganizationId}");
+                        throw new Exception($"找不到公司 ID：{row.OrganizationId}");
 
-                    // 2. 領域
                     var normalizedFieldName = row.FieldName?.Trim().ToLower();
-                    var field = allFields.Values.FirstOrDefault(f =>
-                        (!string.IsNullOrWhiteSpace(f.field) && f.field.Trim().ToLower() == normalizedFieldName) ||
-                        (!string.IsNullOrWhiteSpace(f.enfield) && f.enfield.Trim().ToLower() == normalizedFieldName)
-                    );
-
-                    if (field == null)
+                    if (!allFields.TryGetValue(normalizedFieldName ?? "", out var field))
                         throw new Exception($"找不到領域：{row.FieldName}");
 
-                    // 3. 判斷指標類型
                     int categoryId = (row.KpiCategoryName == "客製" || row.KpiCategoryName == "客製型") ? 1 : 0;
 
-                    // 4. 找指標（KpiItem）
+                    // 指標處理
                     var item = allKpiItems.FirstOrDefault(i =>
                         i.KpiFieldId == field.Id &&
                         i.KpiCategoryId == categoryId &&
@@ -1180,7 +1182,6 @@ public class KpiService:IKpiService
 
                     if (item == null)
                     {
-                        // 建新Item
                         var maxNumber = allKpiItems
                             .Where(i => i.KpiFieldId == field.Id &&
                                         i.KpiCategoryId == categoryId &&
@@ -1197,7 +1198,7 @@ public class KpiService:IKpiService
                             UploadTime = now,
                             KpiItemNames = new List<KpiItemName>
                             {
-                                new KpiItemName
+                                new()
                                 {
                                     Name = row.IndicatorName,
                                     StartYear = currentYear,
@@ -1208,10 +1209,10 @@ public class KpiService:IKpiService
                         };
                         _db.KpiItems.Add(item);
                         await _db.SaveChangesAsync();
-                        allKpiItems.Add(item); // 更新記憶體快取
+                        allKpiItems.Add(item);
                     }
 
-                    // 5. 找指標細項（KpiDetailItem）
+                    // 細項處理
                     var detailItem = allDetailItems.FirstOrDefault(d =>
                         d.KpiItemId == item.Id &&
                         d.Unit == row.Unit &&
@@ -1229,7 +1230,7 @@ public class KpiService:IKpiService
                             UploadTime = now,
                             KpiDetailItemNames = new List<KpiDetailItemName>
                             {
-                                new KpiDetailItemName
+                                new()
                                 {
                                     Name = row.DetailItemName,
                                     StartYear = currentYear,
@@ -1239,16 +1240,14 @@ public class KpiService:IKpiService
                             }
                         };
                         _db.KpiDetailItems.Add(detailItem);
-                        await _db.SaveChangesAsync(); // ✅ 這裡立刻存，拿到 detailItem.Id
+                        await _db.SaveChangesAsync();
                         allDetailItems.Add(detailItem);
                     }
 
-                    // 比對 KpiCycleName，找出對應 ID
                     var kpiCycle = allKpiCycles.FirstOrDefault(c => c.CycleName == row.KpiCycleName?.Trim());
                     if (kpiCycle == null)
-                        throw new Exception($"找不到對應的 KpiCycle 名稱：{row.KpiCycleName}");
-                    
-                    // 6. 確認是否已經存在相同的 KPI Data
+                        throw new Exception($"找不到循環期：{row.KpiCycleName}");
+
                     bool existsData = await _db.KpiDatas.AnyAsync(d =>
                         d.OrganizationId == organization.Id &&
                         d.DetailItemId == detailItem.Id &&
@@ -1258,12 +1257,10 @@ public class KpiService:IKpiService
                     if (existsData)
                     {
                         failCount++;
-                        failDetails.Add($"已有資料：{row.OrganizationId} / {row.IndicatorName} / {row.DetailItemName}");
+                        failDetails.Add($"已有資料：{organization.Name} / {row.IndicatorName} / {row.DetailItemName}");
                         continue;
                     }
 
-                    
-                    // 7. 新增KpiData
                     _db.KpiDatas.Add(new KpiData
                     {
                         OrganizationId = organization.Id,
@@ -1287,24 +1284,20 @@ public class KpiService:IKpiService
                     failDetails.Add(ex.Message);
                 }
 
-                // ⚡ 每處理50筆，先存一次
                 if ((successCount + failCount) % 50 == 0)
-                {
                     await _db.SaveChangesAsync();
-                }
             }
 
-            // 最後再Save一次
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return (true, $"✅ 匯入完成，成功：{successCount} 筆，失敗：{failCount} 筆\n{string.Join("\n", failDetails)}");
+            return (true, $"✅ 匯入完成：成功 {successCount} 筆，失敗 {failCount} 筆\n{string.Join("\n", failDetails)}");
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
             var innerMessage = ex.InnerException?.Message ?? ex.Message;
-            return (false, $"❌ 匯入失敗，原因：{innerMessage}");
+            return (false, $"❌ 匯入失敗，錯誤：{innerMessage}");
         }
     }
     

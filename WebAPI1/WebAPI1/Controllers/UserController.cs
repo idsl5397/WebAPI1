@@ -185,7 +185,7 @@ namespace WebAPI1.Controllers
                 return BadRequest(new { message = "Email 與新密碼不能為空" });
 
             var success = await _userService.ResetPasswordAsync(dto.Email, dto.NewPassword);
-
+            
             if (!success)
                 return NotFound(new { message = "找不到使用者" });
 
