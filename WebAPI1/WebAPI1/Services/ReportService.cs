@@ -94,6 +94,7 @@ public class SuggestUncompletedDto
     public string RespDept { get; set; }
     public string Remark { get; set; }
     public string IsAdopted { get; set; }
+    public string Completed { get; set; }
 }
 public interface IReportService
 {
@@ -330,7 +331,9 @@ public class ReportService:IReportService
                 EventType = r.SuggestDate.SuggestEventType.Name,
                 RespDept = r.RespDept,
                 Remark = r.Remark,
-                IsAdopted = r.IsAdopted.ToString()
+                IsAdopted = r.IsAdopted.ToString(),
+                Completed = r.Completed.ToString(),
+                
             })
             .OrderByDescending(r => r.Date)
             .ToListAsync();
