@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAPI1.Context;
 
@@ -11,9 +12,11 @@ using WebAPI1.Context;
 namespace WebAPI1.Migrations
 {
     [DbContext(typeof(ISHAuditDbcontext))]
-    partial class ISHAuditDbcontextModelSnapshot : ModelSnapshot
+    [Migration("20250708070617_user_to_guid")]
+    partial class user_to_guid
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,84 +58,6 @@ namespace WebAPI1.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DataChangeLogs");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.File", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("FileUuid")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UploadedById")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FileUuid")
-                        .IsUnique()
-                        .HasDatabaseName("IX_File_FileUuid");
-
-                    b.HasIndex("UploadedById");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Files");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiCycle", b =>
@@ -703,148 +628,6 @@ namespace WebAPI1.Migrations
                     b.ToTable("OrganizationTypes");
                 });
 
-            modelBuilder.Entity("WebAPI1.Entities.PasswordPolicy", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AllowUserOverride")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("LockoutDurationMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LockoutThreshold")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxLength")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinLength")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinUniqueChars")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("OrganizationId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("OrganizationTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PasswordExpiryDays")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PasswordExpiryWarningDays")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PasswordHistoryCount")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("PreventCommonWords")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("PreventUsernameInclusion")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequireLowercase")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequireNumber")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequireSpecialChar")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequireUppercase")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("SpecialChars")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsDefault");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("OrganizationTypeId");
-
-                    b.ToTable("PasswordPolicy");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.Permission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Permissions");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.Role", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.RolePermission", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("RoleId", "PermissionId");
-
-                    b.HasIndex("PermissionId");
-
-                    b.ToTable("RolePermissions");
-                });
-
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
                     b.Property<int>("Id")
@@ -912,9 +695,6 @@ namespace WebAPI1.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("FileId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("int");
 
@@ -924,8 +704,11 @@ namespace WebAPI1.Migrations
                     b.Property<string>("ReportName")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .IsUnicode(true)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ReportType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("datetime2");
@@ -937,8 +720,6 @@ namespace WebAPI1.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FileId");
 
                     b.HasIndex("OrganizationId");
 
@@ -1159,8 +940,6 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("OrganizationTypeId");
 
-                    b.HasIndex("PasswordPolicyId");
-
                     b.HasIndex("Username", "Email")
                         .IsUnique();
 
@@ -1273,27 +1052,10 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
-
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
                     b.ToTable("UserRoles");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.File", b =>
-                {
-                    b.HasOne("WebAPI1.Entities.User", "UploadedBy")
-                        .WithMany()
-                        .HasForeignKey("UploadedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI1.Entities.User", null)
-                        .WithMany("Files")
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiData", b =>
@@ -1456,42 +1218,6 @@ namespace WebAPI1.Migrations
                     b.Navigation("ParentType");
                 });
 
-            modelBuilder.Entity("WebAPI1.Entities.PasswordPolicy", b =>
-                {
-                    b.HasOne("WebAPI1.Entities.Organization", "Organization")
-                        .WithMany("PasswordPolicies")
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("WebAPI1.Entities.OrganizationType", "OrganizationType")
-                        .WithMany("PasswordPolicies")
-                        .HasForeignKey("OrganizationTypeId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("OrganizationType");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.RolePermission", b =>
-                {
-                    b.HasOne("WebAPI1.Entities.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI1.Entities.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
                 {
                     b.HasOne("WebAPI1.Entities.Organization", "Organization")
@@ -1511,23 +1237,18 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestFile", b =>
                 {
-                    b.HasOne("WebAPI1.Entities.File", "file")
-                        .WithMany("SuggestFiles")
-                        .HasForeignKey("FileId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("WebAPI1.Entities.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("OrganizationId");
 
-                    b.HasOne("WebAPI1.Entities.User", null)
+                    b.HasOne("WebAPI1.Entities.User", "User")
                         .WithMany("SuggestFiles")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Organization");
 
-                    b.Navigation("file");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestReport", b =>
@@ -1576,14 +1297,7 @@ namespace WebAPI1.Migrations
                         .WithMany("Users")
                         .HasForeignKey("OrganizationTypeId");
 
-                    b.HasOne("WebAPI1.Entities.PasswordPolicy", "PasswordPolicy")
-                        .WithMany("Users")
-                        .HasForeignKey("PasswordPolicyId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Organization");
-
-                    b.Navigation("PasswordPolicy");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.UserPasswordHistory", b =>
@@ -1599,26 +1313,13 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.UserRole", b =>
                 {
-                    b.HasOne("WebAPI1.Entities.Role", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("WebAPI1.Entities.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Role");
-
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.File", b =>
-                {
-                    b.Navigation("SuggestFiles");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiCycle", b =>
@@ -1663,8 +1364,6 @@ namespace WebAPI1.Migrations
 
                     b.Navigation("Domains");
 
-                    b.Navigation("PasswordPolicies");
-
                     b.Navigation("Users");
                 });
 
@@ -1676,26 +1375,7 @@ namespace WebAPI1.Migrations
 
                     b.Navigation("ParentHierarchies");
 
-                    b.Navigation("PasswordPolicies");
-
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.PasswordPolicy", b =>
-                {
-                    b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.Role", b =>
-                {
-                    b.Navigation("RolePermissions");
-
-                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
@@ -1715,8 +1395,6 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.User", b =>
                 {
-                    b.Navigation("Files");
-
                     b.Navigation("PasswordHistory");
 
                     b.Navigation("SuggestFiles");

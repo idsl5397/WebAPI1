@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Entities;
+using File = WebAPI1.Entities;
 
 namespace WebAPI1.Context;
 
@@ -42,6 +43,7 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<SuggestReport> SuggestReports { get; set; }
     public virtual DbSet<SuggestFile> SuggestFiles { get; set; }
     public virtual DbSet<PasswordPolicy> PasswordPolicy { get; set; }
+    public virtual DbSet<File.File> Files { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -105,13 +107,6 @@ public partial class ISHAuditDbcontext : DbContext
             .HasOne(c => c.Organization)
             .WithMany()
             .HasForeignKey(d => d.OrganizationId);
-        
-        // UserInfo 與 SuggestFile 關聯設定
-        modelBuilder.Entity<User>()
-            .HasMany(c => c.SuggestFiles)
-            .WithOne(s => s.User)
-            .HasForeignKey(s => s.UserId)
-            .OnDelete(DeleteBehavior.NoAction);
         
         // Menu 與 MenuRole 關聯設定
         modelBuilder.Entity<Menu>()
@@ -201,6 +196,8 @@ public partial class ISHAuditDbcontext : DbContext
                 .HasForeignKey(u => u.PasswordPolicyId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
+            
+
             
             // 用戶名唯一索引
             entity.HasIndex(u => new { u.Username, u.Email }).IsUnique();
@@ -365,7 +362,127 @@ public partial class ISHAuditDbcontext : DbContext
         modelBuilder.Entity<KpiReport>()
             .HasIndex(r => new { r.KpiDataId, r.Year, r.Period })
             .IsUnique();
+        
+//--------------------     file    --------------------
+
+        // 在 DbContext 的 OnModelCreating 方法中配置
+    // SuggestFile 實體配置
+    modelBuilder.Entity<SuggestFile>(entity =>
+    {
+        // 設定主鍵
+        entity.HasKey(e => e.Id);
+        
+        // 設定屬性
+        entity.Property(e => e.Id)
+            .ValueGeneratedOnAdd();
+            
+        entity.Property(e => e.Year)
+            .IsRequired();
+            
+        entity.Property(e => e.Quarter)
+            .IsRequired();
+            
+        entity.Property(e => e.ReportName)
+            .HasMaxLength(255)
+            .IsUnicode(true);
+            
+        entity.Property(e => e.CreatedAt)
+            .HasColumnType("datetime2");
+            
+        entity.Property(e => e.UpdateAt)
+            .HasColumnType("datetime2");
+            
+        // 設定外鍵關聯
+        entity.HasOne(d => d.Organization)
+            .WithMany()
+            .HasForeignKey(d => d.OrganizationId)
+            .OnDelete(DeleteBehavior.SetNull);
+            
+        entity.HasOne(d => d.file)
+            .WithMany(p => p.SuggestFiles)
+            .HasForeignKey(d => d.FileId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+
+    });
+    
+    // File 實體配置
+    modelBuilder.Entity<File.File>(entity =>
+    {
+        // 設定主鍵
+        entity.HasKey(e => e.Id);
+        
+        // 設定屬性
+        entity.Property(e => e.Id)
+            .ValueGeneratedOnAdd();
+            
+        entity.Property(e => e.FileName)
+            .IsRequired()
+            .HasMaxLength(255)
+            .IsUnicode(true);
+            
+        entity.Property(e => e.FileUuid)
+            .IsRequired()
+            .HasMaxLength(50)
+            .IsUnicode(false);
+            
+        entity.Property(e => e.FileType)
+            .HasMaxLength(100)
+            .IsUnicode(false);
+            
+        entity.Property(e => e.FilePath)
+            .HasMaxLength(500)
+            .IsUnicode(true);
+            
+        entity.Property(e => e.UploadedById)
+            .IsRequired();
+            
+        entity.Property(e => e.UploadedAt)
+            .HasColumnType("datetime2")
+            .IsRequired();
+            
+        entity.Property(e => e.FileSize)
+            .IsRequired();
+            
+        entity.Property(e => e.Description)
+            .HasMaxLength(500)
+            .IsUnicode(true);
+            
+        entity.Property(e => e.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+            
+        entity.Property(e => e.CreatedAt)
+            .HasColumnType("datetime2")
+            .IsRequired()
+            .HasDefaultValueSql("GETUTCDATE()");
+            
+        entity.Property(e => e.UpdatedAt)
+            .HasColumnType("datetime2")
+            .IsRequired()
+            .HasDefaultValueSql("GETUTCDATE()");
+        
+        // 設定唯一索引
+        entity.HasIndex(e => e.FileUuid)
+            .IsUnique()
+            .HasDatabaseName("IX_File_FileUuid");
+            
+        // 設定外鍵關聯
+        entity.HasOne(d => d.UploadedBy)
+            .WithMany()
+            .HasForeignKey(d => d.UploadedById)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        // 設定一對多關聯到 SuggestFile
+        entity.HasMany(e => e.SuggestFiles)
+            .WithOne(s => s.file)
+            .HasForeignKey(s => s.FileId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
+
+    });
     }
 
+    
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

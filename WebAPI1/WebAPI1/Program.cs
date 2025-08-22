@@ -140,6 +140,7 @@ builder.Services.AddScoped<ISuggestService, SuggestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IImprovementService, ImprovementService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 

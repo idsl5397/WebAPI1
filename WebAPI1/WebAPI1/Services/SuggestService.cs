@@ -7,6 +7,7 @@ using NPOI.XSSF.UserModel;
 using WebAPI1.Context;
 using WebAPI1.Entities;
 using Exception = System.Exception;
+using File = System.IO.File;
 
 namespace WebAPI1.Services;
 

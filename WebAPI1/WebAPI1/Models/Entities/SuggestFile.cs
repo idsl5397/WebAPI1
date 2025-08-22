@@ -18,9 +18,6 @@ public class SuggestFile
     [MaxLength(255)]
     public string ReportName { get; set; } // 報告書名稱
 
-    [MaxLength(100)]
-    public string? ReportType { get; set; } // 報告書類型
-
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdateAt { get; set; }
@@ -29,8 +26,8 @@ public class SuggestFile
     [ForeignKey("OrganizationId")]
     public virtual Organization Organization { get; set; }
 
-    public Guid? UserId { get; set; } //上傳人員
-
-    [ForeignKey("UserId")]
-    public virtual User? User { get; set; }
+    public int? FileId { get; set; }
+    [ForeignKey("FileId")]
+    public virtual File file { get; set; }
+    
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAPI1.Context;
 
@@ -11,9 +12,11 @@ using WebAPI1.Context;
 namespace WebAPI1.Migrations
 {
     [DbContext(typeof(ISHAuditDbcontext))]
-    partial class ISHAuditDbcontextModelSnapshot : ModelSnapshot
+    [Migration("20250822064207_new_file")]
+    partial class new_file
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,26 +69,21 @@ namespace WebAPI1.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .IsUnicode(true)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .IsUnicode(true)
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .IsUnicode(true)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<long>("FileSize")
@@ -94,24 +92,18 @@ namespace WebAPI1.Migrations
                     b.Property<string>("FileType")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("FileUuid")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
@@ -119,18 +111,9 @@ namespace WebAPI1.Migrations
                     b.Property<Guid>("UploadedById")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("FileUuid")
-                        .IsUnique()
-                        .HasDatabaseName("IX_File_FileUuid");
-
                     b.HasIndex("UploadedById");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Files");
                 });
@@ -912,9 +895,6 @@ namespace WebAPI1.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("FileId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("int");
 
@@ -924,8 +904,11 @@ namespace WebAPI1.Migrations
                     b.Property<string>("ReportName")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .IsUnicode(true)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ReportType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("datetime2");
@@ -937,8 +920,6 @@ namespace WebAPI1.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FileId");
 
                     b.HasIndex("OrganizationId");
 
@@ -1284,14 +1265,10 @@ namespace WebAPI1.Migrations
             modelBuilder.Entity("WebAPI1.Entities.File", b =>
                 {
                     b.HasOne("WebAPI1.Entities.User", "UploadedBy")
-                        .WithMany()
-                        .HasForeignKey("UploadedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI1.Entities.User", null)
                         .WithMany("Files")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("UploadedBy");
                 });
@@ -1511,23 +1488,18 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestFile", b =>
                 {
-                    b.HasOne("WebAPI1.Entities.File", "file")
-                        .WithMany("SuggestFiles")
-                        .HasForeignKey("FileId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("WebAPI1.Entities.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("OrganizationId");
 
-                    b.HasOne("WebAPI1.Entities.User", null)
+                    b.HasOne("WebAPI1.Entities.User", "User")
                         .WithMany("SuggestFiles")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Organization");
 
-                    b.Navigation("file");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestReport", b =>
@@ -1614,11 +1586,6 @@ namespace WebAPI1.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("WebAPI1.Entities.File", b =>
-                {
-                    b.Navigation("SuggestFiles");
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiCycle", b =>

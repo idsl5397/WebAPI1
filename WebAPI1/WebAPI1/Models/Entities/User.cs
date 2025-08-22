@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Services;
+using File = WebAPI1.Entities;
 
 namespace WebAPI1.Entities;
 
@@ -181,4 +182,7 @@ public class User
     /// 導覽屬性：建議資料
     /// </summary>
     public virtual ICollection<SuggestFile> SuggestFiles { get; set; } = new List<SuggestFile>();
+    
+    
+    public virtual ICollection<File> Files { get; set; } = new List<File>();
 }

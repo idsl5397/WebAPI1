@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAPI1.Context;
 
@@ -11,9 +12,11 @@ using WebAPI1.Context;
 namespace WebAPI1.Migrations
 {
     [DbContext(typeof(ISHAuditDbcontext))]
-    partial class ISHAuditDbcontextModelSnapshot : ModelSnapshot
+    [Migration("20250822082113_...")]
+    partial class _
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "AF0bA1ifmOnbyw2Ad0C3Np5Vm/ZTtu2o/3AHlhyvYxc=",
+  "Hash": "/Lukf4upOtFdhPki/JL+5fU1biddocAiIsoqOsZ4o0Y=",
   "Source": "WebAPI1",
   "BasePath": "_content/WebAPI1",
   "Mode": "Default",
@@ -16,6 +16,111 @@
     }
   ],
   "Assets": [
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65#[.{fingerprint}]?.xlsx",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "5e7n7a6mu8",
+      "Integrity": "08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx"
+    },
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/4dfa8dee-8b61-4a33-aaf6-d9df4e103432#[.{fingerprint}]?.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "g0x28xbe08",
+      "Integrity": "YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf"
+    },
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/aa6d4313-be2a-4ad4-b037-27b90e467e14#[.{fingerprint}]?.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "g0x28xbe08",
+      "Integrity": "YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf"
+    },
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/be2344ad-5461-4233-bbcc-4f8f46454a0e#[.{fingerprint}]?.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "g0x28xbe08",
+      "Integrity": "YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf"
+    },
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/d4a59c96-07e4-4bea-9f40-552c792692e5#[.{fingerprint}]?.xlsx",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "5e7n7a6mu8",
+      "Integrity": "08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx"
+    },
     {
       "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\images\\logo.svg",
       "SourceId": "WebAPI1",
@@ -36,51 +141,419 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\logo.svg"
-    },
-    {
-      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
-      "SourceId": "WebAPI1",
-      "SourceType": "Discovered",
-      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
-      "BasePath": "_content/WebAPI1",
-      "RelativePath": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4#[.{fingerprint}]?.pdf",
-      "AssetKind": "All",
-      "AssetMode": "All",
-      "AssetRole": "Primary",
-      "AssetMergeBehavior": "",
-      "AssetMergeSource": "",
-      "RelatedAsset": "",
-      "AssetTraitName": "",
-      "AssetTraitValue": "",
-      "Fingerprint": "ioc5wr2mwo",
-      "Integrity": "cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=",
-      "CopyToOutputDirectory": "Never",
-      "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf"
-    },
-    {
-      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
-      "SourceId": "WebAPI1",
-      "SourceType": "Discovered",
-      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
-      "BasePath": "_content/WebAPI1",
-      "RelativePath": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3#[.{fingerprint}]?.pdf",
-      "AssetKind": "All",
-      "AssetMode": "All",
-      "AssetRole": "Primary",
-      "AssetMergeBehavior": "",
-      "AssetMergeSource": "",
-      "RelatedAsset": "",
-      "AssetTraitName": "",
-      "AssetTraitValue": "",
-      "Fingerprint": "ioc5wr2mwo",
-      "Integrity": "cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=",
-      "CopyToOutputDirectory": "Never",
-      "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf"
     }
   ],
   "Endpoints": [
+    {
+      "Route": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.5e7n7a6mu8.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "13338"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 08:56:46 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "5e7n7a6mu8"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "13338"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 08:56:46 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/4dfa8dee-8b61-4a33-aaf6-d9df4e103432.g0x28xbe08.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 10:07:00 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "g0x28xbe08"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4dfa8dee-8b61-4a33-aaf6-d9df4e103432.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 10:07:00 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/aa6d4313-be2a-4ad4-b037-27b90e467e14.g0x28xbe08.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 10:06:51 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "g0x28xbe08"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\aa6d4313-be2a-4ad4-b037-27b90e467e14.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 10:06:51 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/be2344ad-5461-4233-bbcc-4f8f46454a0e.g0x28xbe08.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 09:58:10 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "g0x28xbe08"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\be2344ad-5461-4233-bbcc-4f8f46454a0e.pdf",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "1265516"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/pdf"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 09:58:10 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-YJA0oxI2RAmkgLtDmtC5vylj6hRqp/+mKTnzZse4l8Y="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/d4a59c96-07e4-4bea-9f40-552c792692e5.5e7n7a6mu8.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "13338"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 09:34:30 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "5e7n7a6mu8"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\d4a59c96-07e4-4bea-9f40-552c792692e5.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "13338"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 22 Aug 2025 09:34:30 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-08sv8SDymwSU8YVMkdfD8A4PKDRoLOkV0OJFojXTuyw="
+        }
+      ]
+    },
     {
       "Route": "images/logo.6k7qfyn2vm.svg",
       "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\images\\logo.svg",
@@ -160,170 +633,6 @@
         {
           "Name": "integrity",
           "Value": "sha256-OjDFgpihavqKTCNTpwb5TlD6m4Nxmk116TR+k2oq3ak="
-        }
-      ]
-    },
-    {
-      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.ioc5wr2mwo.pdf",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "3696838"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "application/pdf"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "max-age=31536000, immutable"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "fingerprint",
-          "Value": "ioc5wr2mwo"
-        },
-        {
-          "Name": "label",
-          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf"
-        },
-        {
-          "Name": "integrity",
-          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
-        }
-      ]
-    },
-    {
-      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-113年-Q4.pdf",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "3696838"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "application/pdf"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 09 Jul 2025 08:51:01 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "no-cache"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "integrity",
-          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
-        }
-      ]
-    },
-    {
-      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.ioc5wr2mwo.pdf",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "3696838"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "application/pdf"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "max-age=31536000, immutable"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "fingerprint",
-          "Value": "ioc5wr2mwo"
-        },
-        {
-          "Name": "label",
-          "Value": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf"
-        },
-        {
-          "Name": "integrity",
-          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
-        }
-      ]
-    },
-    {
-      "Route": "uploads/績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
-      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\uploads\\績效指標推動執行總成果及後續規劃報告-中日合成林園廠-114年-Q3.pdf",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "3696838"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "application/pdf"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 09 Jul 2025 08:50:27 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "no-cache"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "integrity",
-          "Value": "sha256-cttucluQ88kbQ/SMZsORY/wDMcpcVP2Ec9/gWx56ff8="
         }
       ]
     }
