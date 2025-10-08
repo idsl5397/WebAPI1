@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAPI1.Context;
@@ -24,33 +25,59 @@ public class KpiController: ControllerBase
     [HttpPost("create-kpi-field")]
     public async Task<IActionResult> CreateKpiField([FromBody] CreateKpiFieldDto dto)
     {
+        var userId = User.FindFirst("sub")?.Value 
+                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                     ?? "anonymous";
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value 
+                       ?? User.FindFirst("name")?.Value 
+                       ?? "unknown";
+        _logger.LogInformation("使用者 {userName} ({userId}) 呼叫 CreateKpiField，資料：{@Dto}", userName, userId, dto);
         try
         {
             var result = await _kpiService.CreateKpiFieldAsync(dto);
+            _logger.LogInformation("使用者 {userName} ({userId}) 成功建立 KPI Field：{@Result}", userName, userId, result);
             return Ok(new { success = true, data = result });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "使用者 {userName} ({userId}) 建立 KPI Field 失敗", userName, userId);
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
     
     [HttpPost("import-single")]
-    [Authorize]
     public async Task<IActionResult> InsertKpiData([FromBody] KpisingleRow row)
     {
+        var userId = User.FindFirst("sub")?.Value 
+                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                     ?? "anonymous";
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value 
+                       ?? User.FindFirst("name")?.Value 
+                       ?? "unknown";
+        _logger.LogInformation("使用者 {userName} ({userId}) 嘗試匯入單筆 KPI 資料：{@Row}", userName, userId, row);
+
         if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("使用者 {userName} ({userId}) 匯入資料驗證失敗", userName, userId);
             return BadRequest(new { success = false, message = "資料驗證失敗" });
+        }
+
         try
         {
             var (success, message) = await _kpiService.InsertKpiData(row);
-            if (!success)
-                return BadRequest(new { success = false, message });
 
+            if (!success)
+            {
+                _logger.LogWarning("使用者 {userName} ({userId}) 匯入失敗：{Message}", userName, userId, message);
+                return BadRequest(new { success = false, message });
+            }
+
+            _logger.LogInformation("使用者 {userName} ({userId}) 匯入成功：{Message}", userName, userId, message);
             return Ok(new { success = true, message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "使用者 {userName} ({userId}) 匯入單筆 KPI 發生例外", userName, userId);
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
@@ -58,11 +85,36 @@ public class KpiController: ControllerBase
     
     [HttpGet("display")]
     [Authorize]
-    public async Task<IActionResult> GetKpiDisplayAsync([FromQuery] int? organizationId, [FromQuery] int? startYear, [FromQuery] int? endYear, [FromQuery] string? startQuarter, [FromQuery] string? endQuarter, [FromQuery] string? keyword)
+    public async Task<IActionResult> GetKpiDisplayAsync(
+        [FromQuery] int? organizationId,
+        [FromQuery] int? startYear,
+        [FromQuery] int? endYear,
+        [FromQuery] string? startQuarter,
+        [FromQuery] string? endQuarter,
+        [FromQuery] string? keyword)
     {
-        var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear, startQuarter, endQuarter, keyword);
-        return Ok(new { success = true, data = result });
+        var userId = User.FindFirst("sub")?.Value 
+                     ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                     ?? "anonymous";
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value 
+                       ?? User.FindFirst("name")?.Value 
+                       ?? "unknown";
+        _logger.LogInformation("使用者 {userName} ({userId}) 查詢 KPI Display，條件：Org={Org}, 年={StartYear}-{EndYear}, Keyword={Keyword}", 
+            userName, userId, organizationId, startYear, endYear, keyword);
+
+        try
+        {
+            var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear, startQuarter, endQuarter, keyword);
+            _logger.LogInformation("使用者 {userName} ({userId}) 查詢完成，共 {Count} 筆資料", userName, userId, result.Count());
+            return Ok(new { success = true, data = result });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "使用者 {userName} ({userId})  查詢 KPI Display 失敗", userName, userId);
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
+    
     [HttpGet("displayPage")]
     public async Task<IActionResult> GetKpiDisplayPagedAsync(
         [FromQuery] int page = 1,

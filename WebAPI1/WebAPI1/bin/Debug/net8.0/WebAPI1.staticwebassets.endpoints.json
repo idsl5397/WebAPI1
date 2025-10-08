@@ -3,6 +3,88 @@
   "ManifestType": "Build",
   "Endpoints": [
     {
+      "Route": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.hr6rfapfyx.xlsx",
+      "AssetFile": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4418"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 25 Aug 2025 05:10:38 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "hr6rfapfyx"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw="
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx"
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "AssetFile": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4418"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 25 Aug 2025 05:10:38 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw="
+        }
+      ]
+    },
+    {
       "Route": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.5e7n7a6mu8.xlsx",
       "AssetFile": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
       "Selectors": [],

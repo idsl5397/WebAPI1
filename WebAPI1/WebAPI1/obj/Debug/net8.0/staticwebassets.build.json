@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "/Lukf4upOtFdhPki/JL+5fU1biddocAiIsoqOsZ4o0Y=",
+  "Hash": "W7Wrri3BxK0qBQFOBiBKgg8U5Z0OE856v4GJmALeMrI=",
   "Source": "WebAPI1",
   "BasePath": "_content/WebAPI1",
   "Mode": "Default",
@@ -16,6 +16,27 @@
     }
   ],
   "Assets": [
+    {
+      "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "SourceId": "WebAPI1",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\",
+      "BasePath": "_content/WebAPI1",
+      "RelativePath": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0#[.{fingerprint}]?.xlsx",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "hr6rfapfyx",
+      "Integrity": "A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Files\\Reports\\37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx"
+    },
     {
       "Identity": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
       "SourceId": "WebAPI1",
@@ -144,6 +165,88 @@
     }
   ],
   "Endpoints": [
+    {
+      "Route": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.hr6rfapfyx.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4418"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 25 Aug 2025 05:10:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "hr6rfapfyx"
+        },
+        {
+          "Name": "label",
+          "Value": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw="
+        }
+      ]
+    },
+    {
+      "Route": "Files/Reports/37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\37fb73d0-adde-45e5-a1f5-5fe1257286a0.xlsx",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4418"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 25 Aug 2025 05:10:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-A369mBO3M+XrJkSeUJlEUjAGSJL/OSwlUn+8pNPgLhw="
+        }
+      ]
+    },
     {
       "Route": "Files/Reports/4ad3f157-92e2-4311-811f-7d0cee419d65.5e7n7a6mu8.xlsx",
       "AssetFile": "D:\\D曹\\宜蓁\\web api 練習\\WebAPI1\\WebAPI1\\WebAPI1\\wwwroot\\Files\\Reports\\4ad3f157-92e2-4311-811f-7d0cee419d65.xlsx",
