@@ -1359,13 +1359,13 @@ public class KpiService:IKpiService
                     BaselineValue = GetCellDecimal(row.GetCell(12)),
                     Reports = new List<KpiReportDto>
                     {
-                        new KpiReportDto { Year = 107, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
-                        new KpiReportDto { Year = 108, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
-                        new KpiReportDto { Year = 109, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))},
+                        new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
+                        new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
+                        // new KpiReportDto { Year = 109, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))},
                     },
-                    TargetValue = GetCellDecimal(row.GetCell(16)),
-                    ComparisonOperator = GetCellString(row.GetCell(17)),
-                    Remarks = GetCellString(row.GetCell(18)),
+                    TargetValue = GetCellDecimal(row.GetCell(15)),
+                    ComparisonOperator = GetCellString(row.GetCell(16)),
+                    Remarks = GetCellString(row.GetCell(17)),
                     // NewBaselineYear = GetCellString(row.GetCell(19)),
                     // NewBaselineValue = GetCellDecimal(row.GetCell(20)),
                     // NewExecutionValue = GetCellDecimal(row.GetCell(21)),
@@ -1528,7 +1528,7 @@ public class KpiService:IKpiService
                         Remarks = row.Remarks,
                         CreatedAt = now,
                         UpdateAt = now,
-                        KpiCycleId = 4
+                        KpiCycleId = 5
                     };
                     _db.KpiDatas.Add(kpiData);
                     await _db.SaveChangesAsync();
