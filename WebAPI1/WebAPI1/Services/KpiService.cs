@@ -1314,6 +1314,35 @@ public class KpiService:IKpiService
 
             try
             {
+                // var data = new KpiimportexcelDto
+                // {
+                //     Id = int.TryParse(GetCellString(row.GetCell(0)), out var orgId) ? orgId : 0,
+                //     Company = GetCellString(row.GetCell(1)),
+                //     ProductionSite = row.GetCell(2)?.ToString()?.Trim(),
+                //     Field = GetCellString(row.GetCell(3)),
+                //     Category = GetCellString(row.GetCell(4)),
+                //     IndicatorName = GetCellString(row.GetCell(6)),
+                //     DetailItemName = GetCellString(row.GetCell(7)),
+                //     Unit = GetCellString(row.GetCell(8)),
+                //     IsIndicator = ConvertYesNoToBool(GetCellString(row.GetCell(9))),
+                //     IsApplied = ConvertYesNoToBool(GetCellString(row.GetCell(10))),
+                //     BaselineYear = GetCellString(row.GetCell(11)),
+                //     BaselineValue = GetCellDecimal(row.GetCell(12)),
+                //     Reports = new List<KpiReportDto>
+                //     {
+                //         new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
+                //         new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
+                //         new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))}
+                //     },
+                //     TargetValue = GetCellDecimal(row.GetCell(16)),
+                //     ComparisonOperator = GetCellString(row.GetCell(17)),
+                //     Remarks = GetCellString(row.GetCell(18)),
+                //     NewBaselineYear = GetCellString(row.GetCell(19)),
+                //     NewBaselineValue = GetCellDecimal(row.GetCell(20)),
+                //     NewExecutionValue = GetCellDecimal(row.GetCell(21)),
+                //     NewTargetValue = GetCellDecimal(row.GetCell(22)),
+                //     NewRemarks = GetCellString(row.GetCell(23)),
+                // };
                 var data = new KpiimportexcelDto
                 {
                     Id = int.TryParse(GetCellString(row.GetCell(0)), out var orgId) ? orgId : 0,
@@ -1330,18 +1359,18 @@ public class KpiService:IKpiService
                     BaselineValue = GetCellDecimal(row.GetCell(12)),
                     Reports = new List<KpiReportDto>
                     {
-                        new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
-                        new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
-                        new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))}
+                        new KpiReportDto { Year = 107, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
+                        new KpiReportDto { Year = 108, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
+                        new KpiReportDto { Year = 109, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))},
                     },
                     TargetValue = GetCellDecimal(row.GetCell(16)),
                     ComparisonOperator = GetCellString(row.GetCell(17)),
                     Remarks = GetCellString(row.GetCell(18)),
-                    NewBaselineYear = GetCellString(row.GetCell(19)),
-                    NewBaselineValue = GetCellDecimal(row.GetCell(20)),
-                    NewExecutionValue = GetCellDecimal(row.GetCell(21)),
-                    NewTargetValue = GetCellDecimal(row.GetCell(22)),
-                    NewRemarks = GetCellString(row.GetCell(23)),
+                    // NewBaselineYear = GetCellString(row.GetCell(19)),
+                    // NewBaselineValue = GetCellDecimal(row.GetCell(20)),
+                    // NewExecutionValue = GetCellDecimal(row.GetCell(21)),
+                    // NewTargetValue = GetCellDecimal(row.GetCell(22)),
+                    // NewRemarks = GetCellString(row.GetCell(23)),
                 };
 
                 result.Add(data);
@@ -1365,7 +1394,7 @@ public class KpiService:IKpiService
         var now = tool.GetTaiwanNow();
         var userEmail = "idsl5397@mail.isha.org.tw";
         var currentYear = 113;
-
+    
         int successCount = 0;
         int failCount = 0;
         List<string> failDetails = new();
@@ -1398,6 +1427,8 @@ public class KpiService:IKpiService
                     var productionSite = string.IsNullOrWhiteSpace(row.ProductionSite) || row.ProductionSite.Trim() == "-" 
                         ? ""
                         : row.ProductionSite.Trim();
+
+                    int cycleId = row.KpiCycleId;
                     
                     int categoryId = (row.Category == "客製" || row.Category == "客製型") ? 1 : 0;
 
@@ -1474,7 +1505,8 @@ public class KpiService:IKpiService
                     bool existsData = await _db.KpiDatas.AnyAsync(d =>
                         d.OrganizationId == organization.Id &&
                         d.DetailItemId == detailItem.Id &&
-                        (d.ProductionSite ?? "") == productionSite);
+                        (d.ProductionSite ?? "") == productionSite &&
+                        d.KpiCycleId == cycleId);
 
                     if (existsData)
                     {
@@ -1496,7 +1528,7 @@ public class KpiService:IKpiService
                         Remarks = row.Remarks,
                         CreatedAt = now,
                         UpdateAt = now,
-                        KpiCycleId = 1
+                        KpiCycleId = 4
                     };
                     _db.KpiDatas.Add(kpiData);
                     await _db.SaveChangesAsync();
@@ -1523,41 +1555,41 @@ public class KpiService:IKpiService
                     }
 
                     
-                    // 新週期 KpiData（若有提供）
-                    if (!string.IsNullOrWhiteSpace(row.NewBaselineYear))
-                    {
-                        var kpiData2 = new KpiData
-                        {
-                            OrganizationId = organization.Id,
-                            ProductionSite = productionSite,
-                            DetailItemId = detailItem.Id,
-                            IsApplied = row.IsApplied,
-                            BaselineYear = row.NewBaselineYear,
-                            BaselineValue = row.NewBaselineValue ?? 0,
-                            TargetValue = row.NewTargetValue ?? 0,
-                            Remarks = row.NewRemarks,
-                            CreatedAt = now,
-                            UpdateAt = now,
-                            KpiCycleId = 2
-                        };
-                        _db.KpiDatas.Add(kpiData2);
-                        await _db.SaveChangesAsync();
-
-                        if (row.NewExecutionValue.HasValue)
-                        {
-                            _db.KpiReports.Add(new KpiReport
-                            {
-                                KpiDataId = kpiData2.Id,
-                                Year = 114,
-                                Period = "Q2",
-                                KpiReportValue = row.NewExecutionValue.Value,
-                                CreatedAt = now,
-                                UpdateAt = now,
-                                Status = ReportStatus.Finalized,
-                                IsSkipped = false
-                            });
-                        }
-                    }
+                    // // 新週期 KpiData（若有提供）
+                    // if (!string.IsNullOrWhiteSpace(row.NewBaselineYear))
+                    // {
+                    //     var kpiData2 = new KpiData
+                    //     {
+                    //         OrganizationId = organization.Id,
+                    //         ProductionSite = productionSite,
+                    //         DetailItemId = detailItem.Id,
+                    //         IsApplied = row.IsApplied,
+                    //         BaselineYear = row.NewBaselineYear,
+                    //         BaselineValue = row.NewBaselineValue ?? 0,
+                    //         TargetValue = row.NewTargetValue ?? 0,
+                    //         Remarks = row.NewRemarks,
+                    //         CreatedAt = now,
+                    //         UpdateAt = now,
+                    //         KpiCycleId = 2
+                    //     };
+                    //     _db.KpiDatas.Add(kpiData2);
+                    //     await _db.SaveChangesAsync();
+                    //
+                    //     if (row.NewExecutionValue.HasValue)
+                    //     {
+                    //         _db.KpiReports.Add(new KpiReport
+                    //         {
+                    //             KpiDataId = kpiData2.Id,
+                    //             Year = 114,
+                    //             Period = "Q2",
+                    //             KpiReportValue = row.NewExecutionValue.Value,
+                    //             CreatedAt = now,
+                    //             UpdateAt = now,
+                    //             Status = ReportStatus.Finalized,
+                    //             IsSkipped = false
+                    //         });
+                    //     }
+                    // }
 
                     successCount++;
                 }
