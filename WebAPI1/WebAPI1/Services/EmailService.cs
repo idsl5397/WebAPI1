@@ -179,6 +179,10 @@ public class EmailService : IEmailService
 
             await client.SendMailAsync(message);
             _logger.LogInformation($"Email sent successfully to {option.To}");
+            _logger.LogInformation($"[Email] 準備寄信");
+            _logger.LogInformation($"[Email] SMTP={_settings.SmtpServer}:{_settings.SmtpPort}");
+            _logger.LogInformation($"[Email] From={_settings.FromEmail}, To={option.To}");
+            _logger.LogInformation($"[Email] EnableSsl={_settings.EnableSsl}");
         }
         catch (Exception ex)
         {

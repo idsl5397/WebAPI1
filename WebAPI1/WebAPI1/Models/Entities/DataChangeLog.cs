@@ -3,37 +3,22 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using WebAPI1.Services;
 
 namespace WebAPI1.Entities;
 
-public enum Operation : byte
-{
-    新增 = 0,
-    刪除 = 1,
-    修改 = 2
-}
 
 public class DataChangeLog
 {
-    [Key]
-    public int Id { get; set; }
-    
-    [Required]
-    [MaxLength(100)]  // 限制最大長度為 100
-    public string TableName { get; set; }
-
-    [Required]
-    public int RecordId { get; set; }
-
-    [Column(TypeName = "tinyint")]
-    public Operation OperationType { get; set; } //'新增', '修改', '刪除'
-
-    public string? NewData { get; set; } //修改後資料
-
-    [Required]
-    [MaxLength(50)]
-    public string ModifiedBy { get; set; }
-
-    [Required]
-    public DateTime ModifyDate { get; set; }
+    public long Id { get; set; }
+    public DateTime OccurredAtUtc { get; set; } = tool.GetTaiwanNow();
+    public string? UserId { get; set; }
+    public string? UserName { get; set; }
+    public string Action { get; set; } = default!;
+    public string EntityName { get; set; } = default!;
+    public string? TableName { get; set; }
+    public string? EntityId { get; set; }
+    public string? RequestPath { get; set; }
+    public string? ClientIp { get; set; }
+    public string? PayloadJson { get; set; }
 }

@@ -14,7 +14,7 @@ public class KpiItem
     public int IndicatorNumber { get; set; }
     
     /// <summary>
-    /// 導覽屬性：基礎型(0)客制型(1)，麥寮台塑獨立一個(2)
+    /// 導覽屬性：基礎型(0)客制型(1)
     /// </summary>
     public int KpiCategoryId { get; set; }
     

@@ -99,13 +99,10 @@ public class KpiController: ControllerBase
         var userName = User.FindFirst(ClaimTypes.Name)?.Value 
                        ?? User.FindFirst("name")?.Value 
                        ?? "unknown";
-        _logger.LogInformation("使用者 {userName} ({userId}) 查詢 KPI Display，條件：Org={Org}, 年={StartYear}-{EndYear}, Keyword={Keyword}", 
-            userName, userId, organizationId, startYear, endYear, keyword);
 
         try
         {
-            var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear, startQuarter, endQuarter, keyword);
-            _logger.LogInformation("使用者 {userName} ({userId}) 查詢完成，共 {Count} 筆資料", userName, userId, result.Count());
+            var result = await _kpiService.GetKpiDisplayAsync(organizationId, startYear, endYear, startQuarter, endQuarter, keyword); 
             return Ok(new { success = true, data = result });
         }
         catch (Exception ex)

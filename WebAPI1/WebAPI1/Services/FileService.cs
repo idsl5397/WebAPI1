@@ -207,7 +207,7 @@ public class FileService:IFileService
             }
 
             options ??= new FileListOptions();
-            var startTime = DateTime.UtcNow;
+            var startTime = tool.GetTaiwanNow();
             var items = new List<FileItemDto>();
 
             // === 1. 處理目錄 ===
@@ -299,7 +299,7 @@ public class FileService:IFileService
                     .ToList();
             }
 
-            var duration = DateTime.UtcNow - startTime;
+            var duration = tool.GetTaiwanNow() - startTime;
 
             // 記錄成功操作
             await LogFileOperationAsync("ListDirectory", "目錄列表成功", "Directory", path,
@@ -577,7 +577,7 @@ public class FileService:IFileService
                     DestinationPath = destinationPath,
                     IsDirectory = isDirectory,
                     Overwrite = overwrite,
-                    MovedAt = DateTime.UtcNow
+                    MovedAt = tool.GetTaiwanNow()
                 });
 
             _logger.LogInformation("項目移動成功: {Source} -> {Destination}", sourceFullPath, destFullPath);
@@ -666,7 +666,7 @@ public class FileService:IFileService
                     IsDirectory = isDirectory,
                     ItemSize = itemSize,
                     Overwrite = overwrite,
-                    CopiedAt = DateTime.UtcNow
+                    CopiedAt = tool.GetTaiwanNow()
                 });
 
             _logger.LogInformation("項目複製成功: {Source} -> {Destination}", sourceFullPath, destFullPath);
@@ -765,7 +765,7 @@ public class FileService:IFileService
                 await file.CopyToAsync(stream);
             }
 
-            var uploadTime = DateTime.UtcNow;
+            var uploadTime = tool.GetTaiwanNow();
             var duration = uploadTime - startTime;
 
             var result = new UploadResult

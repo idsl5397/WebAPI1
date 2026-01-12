@@ -68,8 +68,12 @@ builder.Services.AddSwaggerGen(c =>
 //     options.Dsn = "https://e4acbce33ad370e3c0fb2dacfb2f0309@o4509036673826816.ingest.us.sentry.io/4509070034403328";
 //     options.Debug = true;
 // });
-builder.Services.AddDbContext<ISHAuditDbcontext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase")));
+
+builder.Services.AddDbContext<ISHAuditDbcontext>((sp, options) =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("WebDatabase"));
+    options.AddInterceptors(sp.GetRequiredService<DataChangeLogInterceptor>()); // ✅ 掛進 EF
+});
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")));
@@ -134,6 +138,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISuggestService, SuggestService>();
@@ -141,8 +146,12 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IImprovementService, ImprovementService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ITestService, TestService>();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<DataChangeLogInterceptor>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
 
 var redisConnectionString = builder.Configuration.GetValue<string>("ConnectionStrings:Redis");
         

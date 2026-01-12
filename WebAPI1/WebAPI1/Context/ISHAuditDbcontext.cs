@@ -24,7 +24,7 @@ public partial class ISHAuditDbcontext : DbContext
     public virtual DbSet<KpiData> KpiDatas { get; set; }
     public virtual DbSet<KpiReport> KpiReports { get; set; }
     public virtual DbSet<KpiCycle> KpiCycles { get; set; }
-    public virtual DbSet<DataChangeLog> DataChangeLogs { get; set; }
+    public DbSet<DataChangeLog> DataChangeLogs => Set<DataChangeLog>();
     public virtual DbSet<Menu> Menus { get; set; }
     public virtual DbSet<MenuRole> MenusRoles { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
@@ -67,6 +67,11 @@ public partial class ISHAuditDbcontext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         OnModelCreatingPartial(modelBuilder);
+        modelBuilder.Entity<DataChangeLog>(e =>
+        {
+            e.ToTable("DataChangeLogs");
+            e.HasKey(x => x.Id);
+        });
         
         // SuggestEventType 與 SuggestDate 關聯設定
         modelBuilder.Entity<SuggestEventType>()

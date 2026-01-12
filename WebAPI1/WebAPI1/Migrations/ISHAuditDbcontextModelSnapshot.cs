@@ -24,37 +24,47 @@ namespace WebAPI1.Migrations
 
             modelBuilder.Entity("WebAPI1.Entities.DataChangeLog", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("ModifiedBy")
+                    b.Property<string>("Action")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("ModifyDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("NewData")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte>("OperationType")
-                        .HasColumnType("tinyint");
+                    b.Property<string>("ClientIp")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RecordId")
-                        .HasColumnType("int");
+                    b.Property<string>("EntityId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequestPath")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TableName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("DataChangeLogs");
+                    b.ToTable("DataChangeLogs", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.File", b =>
@@ -132,7 +142,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Files");
+                    b.ToTable("Files", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiCycle", b =>
@@ -161,7 +171,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("KpiCycles");
+                    b.ToTable("KpiCycles", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiData", b =>
@@ -215,7 +225,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("KpiDatas");
+                    b.ToTable("KpiDatas", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiDetailItem", b =>
@@ -251,7 +261,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("KpiItemId");
 
-                    b.ToTable("KpiDetailItems");
+                    b.ToTable("KpiDetailItems", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiDetailItemName", b =>
@@ -291,7 +301,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserEmail");
 
-                    b.ToTable("KpiDetailItemNames");
+                    b.ToTable("KpiDetailItemNames", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiField", b =>
@@ -320,7 +330,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("KpiFields");
+                    b.ToTable("KpiFields", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiItem", b =>
@@ -359,7 +369,7 @@ namespace WebAPI1.Migrations
                         .IsUnique()
                         .HasFilter("[OrganizationId] IS NOT NULL");
 
-                    b.ToTable("KpiItems");
+                    b.ToTable("KpiItems", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiItemName", b =>
@@ -399,7 +409,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserEmail");
 
-                    b.ToTable("KpiItemNames");
+                    b.ToTable("KpiItemNames", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.KpiReport", b =>
@@ -445,7 +455,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex(new[] { "KpiDataId" }, "IX_KpiReports_KpiDataId");
 
-                    b.ToTable("KpiReports");
+                    b.ToTable("KpiReports", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.Menu", b =>
@@ -492,7 +502,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Menus");
+                    b.ToTable("Menus", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.MenuRole", b =>
@@ -515,7 +525,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("MenuId");
 
-                    b.ToTable("MenusRoles");
+                    b.ToTable("MenusRoles", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.Organization", b =>
@@ -578,7 +588,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("TypeId");
 
-                    b.ToTable("Organizations");
+                    b.ToTable("Organizations", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.OrganizationDomain", b =>
@@ -630,7 +640,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("OrganizationDomains");
+                    b.ToTable("OrganizationDomains", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.OrganizationHierarchy", b =>
@@ -663,7 +673,7 @@ namespace WebAPI1.Migrations
                     b.HasIndex("ParentTypeId", "ChildTypeId")
                         .IsUnique();
 
-                    b.ToTable("OrganizationHierarchies");
+                    b.ToTable("OrganizationHierarchies", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.OrganizationType", b =>
@@ -700,7 +710,7 @@ namespace WebAPI1.Migrations
                     b.HasIndex("TypeCode")
                         .IsUnique();
 
-                    b.ToTable("OrganizationTypes");
+                    b.ToTable("OrganizationTypes", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.PasswordPolicy", b =>
@@ -787,7 +797,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("OrganizationTypeId");
 
-                    b.ToTable("PasswordPolicy");
+                    b.ToTable("PasswordPolicy", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.Permission", b =>
@@ -807,7 +817,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.Role", b =>
@@ -827,7 +837,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.RolePermission", b =>
@@ -842,7 +852,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestDate", b =>
@@ -874,7 +884,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("SuggestEventTypeId");
 
-                    b.ToTable("SuggestDates");
+                    b.ToTable("SuggestDates", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestEventType", b =>
@@ -898,7 +908,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SuggestEventTypes");
+                    b.ToTable("SuggestEventTypes", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestFile", b =>
@@ -944,7 +954,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SuggestFiles");
+                    b.ToTable("SuggestFiles", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestReport", b =>
@@ -1029,7 +1039,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SuggestReports");
+                    b.ToTable("SuggestReports", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.SuggestionType", b =>
@@ -1057,7 +1067,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SuggestionTypes");
+                    b.ToTable("SuggestionTypes", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.User", b =>
@@ -1164,7 +1174,7 @@ namespace WebAPI1.Migrations
                     b.HasIndex("Username", "Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.UserInfoName", b =>
@@ -1214,7 +1224,7 @@ namespace WebAPI1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserInfoNames");
+                    b.ToTable("UserInfoNames", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.UserPasswordHistory", b =>
@@ -1248,7 +1258,7 @@ namespace WebAPI1.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("UserRPasswordHistories");
+                    b.ToTable("UserRPasswordHistories", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.UserRole", b =>
@@ -1278,7 +1288,7 @@ namespace WebAPI1.Migrations
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI1.Entities.File", b =>

@@ -26,7 +26,7 @@ public class KpiDisplayGroupedDto
     public string? ProductionSite { get; set; }
     public string Category { get; set; }
     public string Field { get; set; }
-    public int IndicatorNumber { get; set; }
+    public int? IndicatorNumber { get; set; }
     public int DetailItemId { get; set; }
     public string IndicatorName { get; set; }
     public string DetailItemName { get; set; }
@@ -665,10 +665,10 @@ public class KpiService:IKpiService
             query = query.Where(d =>
                 d.DetailItem.KpiItem.KpiItemNames.Any(n => n.Name.Contains(keyword)) ||
                 d.DetailItem.KpiDetailItemNames.Any(n => n.Name.Contains(keyword)) ||
-                d.DetailItem.KpiItem.KpiField.field.Contains(keyword) ||
-                d.Organization.Name.Contains(keyword) ||
-                d.ProductionSite.Contains(keyword) ||
-                d.Remarks.Contains(keyword));
+                (d.DetailItem.KpiItem.KpiField.field ?? "").Contains(keyword) ||
+                (d.Organization.Name ?? "").Contains(keyword) ||
+                (d.ProductionSite ?? "").Contains(keyword) ||
+                (d.Remarks ?? "").Contains(keyword));
         }
         
         // 季度排序轉換函式
@@ -685,17 +685,19 @@ public class KpiService:IKpiService
         var rawData = await query.ToListAsync();
 
         var result = rawData
-            .GroupBy(d => new { d.DetailItemId, d.OrganizationId, d.ProductionSite })
-            .Select(g =>
+        .GroupBy(d => new { d.DetailItemId, d.OrganizationId, d.ProductionSite })
+        .Select(g =>
+        {
+            try
             {
+                var any = g.FirstOrDefault();
                 var latestKpiData = g
                     .Where(d =>
-                        !endYear.HasValue || d.KpiReports.Any(r =>
-                            r.Year < endYear || 
-                            (r.Year == endYear && (
-                                string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)
-                            ))))
-                    .OrderByDescending(d => d.KpiCycle.StartYear)
+                        !endYear.HasValue || (d.KpiReports ?? Enumerable.Empty<KpiReport>()).Any(r =>
+                            r.Year < endYear ||
+                            (r.Year == endYear && (string.IsNullOrEmpty(endQuarter) || QuarterOrder(r.Period) <= QuarterOrder(endQuarter)))
+                        ))
+                    .OrderByDescending(d => d.KpiCycle?.StartYear ?? 0)
                     .FirstOrDefault();
 
                 var latestReport = latestKpiData?.KpiReports
@@ -710,20 +712,27 @@ public class KpiService:IKpiService
                     .ThenByDescending(r => QuarterOrder(r.Period))
                     .FirstOrDefault();
 
+                var indicatorName = (any?.DetailItem?.KpiItem?.KpiItemNames ?? Enumerable.Empty<KpiItemName>())
+                    .OrderByDescending(n => n.StartYear)
+                    .FirstOrDefault()?.Name;
+
+                var detailItemName = (any?.DetailItem?.KpiDetailItemNames ?? Enumerable.Empty<KpiDetailItemName>())
+                    .OrderByDescending(n => n.StartYear)
+                    .FirstOrDefault()?.Name;
+
                 return new KpiDisplayGroupedDto
                 {
                     DetailItemId = g.Key.DetailItemId,
                     ProductionSite = g.Key.ProductionSite,
-
                     Company = latestKpiData?.Organization?.Name,
                     Category = latestKpiData?.DetailItem?.KpiItem?.KpiCategoryId == 1 ? "客製型" : "基礎型",
                     Field = latestKpiData?.DetailItem?.KpiItem?.KpiField?.field,
-                    IndicatorNumber = latestKpiData.DetailItem.KpiItem.IndicatorNumber,
-                    IndicatorName = g.First().DetailItem.KpiItem.KpiItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
-                    DetailItemName = g.First().DetailItem.KpiDetailItemNames.OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
-                    Unit = g.First().DetailItem.Unit,
+                    IndicatorNumber = latestKpiData?.DetailItem?.KpiItem?.IndicatorNumber,
+                    IndicatorName = indicatorName,
+                    DetailItemName = detailItemName,
+                    Unit = any?.DetailItem?.Unit,
                     IsIndicator = latestKpiData?.DetailItem?.IsIndicator ?? false,
-                    LastKpiCycleName = latestKpiData?.KpiCycle.CycleName,
+                    LastKpiCycleName = latestKpiData?.KpiCycle?.CycleName,
                     LastBaselineYear = latestKpiData?.BaselineYear,
                     LastBaselineValue = latestKpiData?.BaselineValue,
                     LastTargetValue = latestKpiData?.TargetValue,
@@ -736,13 +745,13 @@ public class KpiService:IKpiService
                     KpiDatas = g.Select(d => new KpiDataCycleDto
                     {
                         KpiDataId = d.Id,
-                        OrganizationName = d.Organization.Name,
-                        KpiCycleName = d.KpiCycle.CycleName,
-                        KpiCycleStartYear = d.KpiCycle.StartYear,
-                        KpiCycleEndYear = d.KpiCycle.EndYear,
+                        OrganizationName = d.Organization?.Name,
+                        KpiCycleName = d.KpiCycle?.CycleName,
+                        KpiCycleStartYear = d.KpiCycle?.StartYear ?? 0,
+                        KpiCycleEndYear = d.KpiCycle?.EndYear ?? 0,
                         BaselineYear = d.BaselineYear,
                         BaselineValue = d.BaselineValue,
-                        ComparisonOperator = d.DetailItem.ComparisonOperator,
+                        ComparisonOperator = d.DetailItem?.ComparisonOperator,
                         TargetValue = d.TargetValue,
                         Remarks = d.Remarks,
                         Reports = d.KpiReports
@@ -767,7 +776,13 @@ public class KpiService:IKpiService
                             }).ToList()
                     }).ToList()
                 };
-            }).ToList();
+            }
+            catch (Exception ex)
+            {
+                // 拋出包含 DetailItemId 的錯誤訊息
+                throw new Exception($"處理 DetailItemId={g.Key.DetailItemId}, OrganizationId={g.Key.OrganizationId}, ProductionSite={g.Key.ProductionSite} 時發生錯誤", ex);
+            }
+        }).ToList();
 
         return result;
     }
@@ -1361,16 +1376,16 @@ public class KpiService:IKpiService
                     {
                         new KpiReportDto { Year = 111, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(13))},
                         new KpiReportDto { Year = 112, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(14))},
-                        // new KpiReportDto { Year = 109, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))},
+                        new KpiReportDto { Year = 113, Period = "Y", KpiReportValue = GetCellDecimal(row.GetCell(15))},
                     },
-                    TargetValue = GetCellDecimal(row.GetCell(15)),
-                    ComparisonOperator = GetCellString(row.GetCell(16)),
-                    Remarks = GetCellString(row.GetCell(17)),
-                    // NewBaselineYear = GetCellString(row.GetCell(19)),
-                    // NewBaselineValue = GetCellDecimal(row.GetCell(20)),
-                    // NewExecutionValue = GetCellDecimal(row.GetCell(21)),
-                    // NewTargetValue = GetCellDecimal(row.GetCell(22)),
-                    // NewRemarks = GetCellString(row.GetCell(23)),
+                    TargetValue = GetCellDecimal(row.GetCell(16)),
+                    ComparisonOperator = GetCellString(row.GetCell(17)),
+                    Remarks = GetCellString(row.GetCell(18)),
+                    NewBaselineYear = GetCellString(row.GetCell(19)),
+                    NewBaselineValue = GetCellDecimal(row.GetCell(20)),
+                    NewExecutionValue = GetCellDecimal(row.GetCell(21)),
+                    NewTargetValue = GetCellDecimal(row.GetCell(22)),
+                    NewRemarks = GetCellString(row.GetCell(23)),
                 };
 
                 result.Add(data);
@@ -1528,7 +1543,7 @@ public class KpiService:IKpiService
                         Remarks = row.Remarks,
                         CreatedAt = now,
                         UpdateAt = now,
-                        KpiCycleId = 5
+                        KpiCycleId = 1
                     };
                     _db.KpiDatas.Add(kpiData);
                     await _db.SaveChangesAsync();
@@ -1555,41 +1570,41 @@ public class KpiService:IKpiService
                     }
 
                     
-                    // // 新週期 KpiData（若有提供）
-                    // if (!string.IsNullOrWhiteSpace(row.NewBaselineYear))
-                    // {
-                    //     var kpiData2 = new KpiData
-                    //     {
-                    //         OrganizationId = organization.Id,
-                    //         ProductionSite = productionSite,
-                    //         DetailItemId = detailItem.Id,
-                    //         IsApplied = row.IsApplied,
-                    //         BaselineYear = row.NewBaselineYear,
-                    //         BaselineValue = row.NewBaselineValue ?? 0,
-                    //         TargetValue = row.NewTargetValue ?? 0,
-                    //         Remarks = row.NewRemarks,
-                    //         CreatedAt = now,
-                    //         UpdateAt = now,
-                    //         KpiCycleId = 2
-                    //     };
-                    //     _db.KpiDatas.Add(kpiData2);
-                    //     await _db.SaveChangesAsync();
-                    //
-                    //     if (row.NewExecutionValue.HasValue)
-                    //     {
-                    //         _db.KpiReports.Add(new KpiReport
-                    //         {
-                    //             KpiDataId = kpiData2.Id,
-                    //             Year = 114,
-                    //             Period = "Q2",
-                    //             KpiReportValue = row.NewExecutionValue.Value,
-                    //             CreatedAt = now,
-                    //             UpdateAt = now,
-                    //             Status = ReportStatus.Finalized,
-                    //             IsSkipped = false
-                    //         });
-                    //     }
-                    // }
+                    // 新週期 KpiData（若有提供）
+                    if (!string.IsNullOrWhiteSpace(row.NewBaselineYear))
+                    {
+                        var kpiData2 = new KpiData
+                        {
+                            OrganizationId = organization.Id,
+                            ProductionSite = productionSite,
+                            DetailItemId = detailItem.Id,
+                            IsApplied = row.IsApplied,
+                            BaselineYear = row.NewBaselineYear,
+                            BaselineValue = row.NewBaselineValue ?? 0,
+                            TargetValue = row.NewTargetValue ?? 0,
+                            Remarks = row.NewRemarks,
+                            CreatedAt = now,
+                            UpdateAt = now,
+                            KpiCycleId = 2
+                        };
+                        _db.KpiDatas.Add(kpiData2);
+                        await _db.SaveChangesAsync();
+                    
+                        if (row.NewExecutionValue.HasValue)
+                        {
+                            _db.KpiReports.Add(new KpiReport
+                            {
+                                KpiDataId = kpiData2.Id,
+                                Year = 114,
+                                Period = "Q2",
+                                KpiReportValue = row.NewExecutionValue.Value,
+                                CreatedAt = now,
+                                UpdateAt = now,
+                                Status = ReportStatus.Finalized,
+                                IsSkipped = false
+                            });
+                        }
+                    }
 
                     successCount++;
                 }
