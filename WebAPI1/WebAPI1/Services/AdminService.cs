@@ -41,6 +41,7 @@ public record UserListItemDto
     public string? Unit { get; init; }
     public string Status { get; init; } = "active";     // active | pending | disabled
     public DateTime? LastLoginAt { get; init; }
+    public bool EmailVerified { get; init; }
 }
 
 public record CreateUserDto
@@ -66,6 +67,26 @@ public record UpdateUserDto2
     public string? Position { get; init; }
     public int OrganizationId { get; init; }
     public bool IsActive { get; init; } = true;
+}
+
+public record UserDetailDto
+{
+    public Guid Id { get; init; }
+    public string Username { get; init; } = "";
+    public string? Nickname { get; init; }
+    public string? Email { get; init; }
+    public string? Mobile { get; init; }
+    public string? Unit { get; init; }
+    public string? Position { get; init; }
+    public string? OrganizationName { get; init; }
+    public string[] Roles { get; init; } = Array.Empty<string>();
+    public bool IsActive { get; init; }
+    public bool EmailVerified { get; init; }
+    public DateTime? EmailVerifiedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? LastLoginAt { get; init; }
+    public DateTime? PasswordChangedAt { get; init; }
+    public bool ForceChangePassword { get; init; }
 }
 
 public record SetRolesDto(string[] Roles);
@@ -277,10 +298,12 @@ public interface IAdminService
     Task DeleteRoleAsync(string name, CancellationToken ct = default);
     
     // ===== 新增：使用者管理 =====
+    Task<UserDetailDto?> GetUserDetailAsync(Guid id, CancellationToken ct = default);
     Task<PagedResult<UserListItemDto>> SearchUsersAsync(UserListQueryDto query, CancellationToken ct = default);
     Task UpdateUserAsync(Guid id, UpdateUserDto2 dto, CancellationToken ct = default);
     Task DeleteUserAsync(Guid id, CancellationToken ct = default);
     Task SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default);
+    Task SetEmailVerifiedAsync(Guid id, bool emailVerified, CancellationToken ct = default);
     Task SetRolesAsync(Guid id, string[] roles, CancellationToken ct = default);
     
     // ===== 新增：日誌管理 =====
@@ -639,6 +662,38 @@ public class AdminService: IAdminService
             => HashCode.Combine(obj.RoleId, obj.PermissionId);
     }
     
+    // 取得使用者詳情
+    public async Task<UserDetailDto?> GetUserDetailAsync(Guid id, CancellationToken ct = default)
+    {
+        var user = await _context.Users
+            .AsNoTracking()
+            .Include(u => u.Organization)
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
+
+        if (user is null) return null;
+
+        return new UserDetailDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Nickname = user.Nickname,
+            Email = user.Email,
+            Mobile = user.Mobile,
+            Unit = user.Unit,
+            Position = user.Position,
+            OrganizationName = user.Organization?.Name,
+            Roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray(),
+            IsActive = user.IsActive,
+            EmailVerified = user.EmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt,
+            PasswordChangedAt = user.PasswordChangedAt,
+            ForceChangePassword = user.ForceChangePassword,
+        };
+    }
+
     // 查詢使用者清單
     public async Task<PagedResult<UserListItemDto>> SearchUsersAsync(UserListQueryDto query, CancellationToken ct = default)
     {
@@ -694,7 +749,8 @@ public class AdminService: IAdminService
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToArray(),
                 Unit = u.Unit,
                 Status = !u.IsActive ? "disabled" : (!u.EmailVerified ? "pending" : "active"),
-                LastLoginAt = u.LastLoginAt
+                LastLoginAt = u.LastLoginAt,
+                EmailVerified = u.EmailVerified
             })
             .ToListAsync(ct);
 
@@ -740,6 +796,19 @@ public class AdminService: IAdminService
             ?? throw new KeyNotFoundException("使用者不存在");
 
         user.IsActive = isActive;
+        user.UpdatedAt = tool.GetTaiwanNow();
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    // Email 驗證狀態
+    public async Task SetEmailVerifiedAsync(Guid id, bool emailVerified, CancellationToken ct = default)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw new KeyNotFoundException("使用者不存在");
+
+        user.EmailVerified = emailVerified;
+        user.EmailVerifiedAt = emailVerified ? DateTime.UtcNow : null;
         user.UpdatedAt = tool.GetTaiwanNow();
 
         await _context.SaveChangesAsync(ct);

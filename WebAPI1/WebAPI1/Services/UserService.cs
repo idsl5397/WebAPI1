@@ -62,6 +62,7 @@ public class LoginResultDto
     public DateTimeOffset? PasswordExpiryAt { get; set; } // 密碼到期時間
     public int? DaysUntilExpiry { get; set; }             // 剩餘天數（無條件進位）
     public bool ForceChangePassword { get; set; } = false;
+    public bool NeedEmailVerification { get; set; } = false;
 }
 
 public class UpdateUserDto
@@ -143,7 +144,8 @@ public class UserService:IUserService
             Position = dto.Position,
             OrganizationId = dto.OrganizationId,
             PasswordHash = hashedPassword,
-            EmailVerified = true,
+            IsActive = false,
+            EmailVerified = false,
             EmailVerifiedAt = null,
             TokenExpiresAt = null,
             ForceChangePassword = false,
@@ -210,6 +212,16 @@ public class UserService:IUserService
             return new LoginResultDto { Success = false, Message = "帳號或密碼錯誤" };
         }
 
+        // 帳號啟用檢查（需管理員審核）
+        if (!user.IsActive)
+        {
+            return new LoginResultDto
+            {
+                Success = false,
+                Message = "帳號尚未啟用，請等待管理員審核"
+            };
+        }
+
         // 鎖定檢查
         if (user.PasswordLockedUntil.HasValue && user.PasswordLockedUntil.Value > now)
         {
@@ -241,6 +253,19 @@ public class UserService:IUserService
         user.LastLoginAt = now;
 
         var currentPolicy = user.PasswordPolicy ?? await _db.PasswordPolicy.FirstOrDefaultAsync(p => p.IsDefault);
+
+        // Email 驗證檢查（優先於 ForceChangePassword）
+        if (!user.EmailVerified)
+        {
+            await _db.SaveChangesAsync();
+            return new LoginResultDto
+            {
+                Success = false,
+                NeedEmailVerification = true,
+                Email = user.Email,
+                Message = "請先完成 Email 驗證"
+            };
+        }
 
         // 密碼到期邏輯（結構化欄位）
         string? warningMessage = null;
@@ -507,6 +532,16 @@ public class UserService:IUserService
         // 驗證成功，刪除 Redis 記錄
         await _redisDb.KeyDeleteAsync(redisKey);
         _logger.LogInformation("驗證碼驗證成功: {Email}", email);
+
+        // 更新使用者 EmailVerified 狀態
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user != null)
+        {
+            user.EmailVerified = true;
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+
         return true;
     }
 }

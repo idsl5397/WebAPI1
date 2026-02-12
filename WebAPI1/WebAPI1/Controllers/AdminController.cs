@@ -90,6 +90,14 @@ public class AdminController : ControllerBase
     
     
     // ======= 使用者管理 =======
+    // 取得使用者詳情
+    [HttpGet("users/{id:guid}")]
+    public async Task<ActionResult<UserDetailDto>> GetUserDetail(Guid id, CancellationToken ct)
+    {
+        var detail = await _adminService.GetUserDetailAsync(id, ct);
+        return detail is null ? NotFound() : Ok(detail);
+    }
+
     // 查詢使用者清單
     [HttpGet("users")]
     public async Task<ActionResult<PagedResult<UserListItemDto>>> SearchUsers([FromQuery] UserListQueryDto q, CancellationToken ct)
@@ -115,6 +123,15 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> SetActive(Guid id, [FromBody] SetActiveDto dto, CancellationToken ct)
     {
         await _adminService.SetActiveAsync(id, dto.IsActive, ct);
+        return NoContent();
+    }
+
+    // Email 驗證狀態
+    public record SetEmailVerifiedDto(bool EmailVerified);
+    [HttpPatch("users/{id:guid}/email-verified")]
+    public async Task<IActionResult> SetEmailVerified(Guid id, [FromBody] SetEmailVerifiedDto dto, CancellationToken ct)
+    {
+        await _adminService.SetEmailVerifiedAsync(id, dto.EmailVerified, ct);
         return NoContent();
     }
 
