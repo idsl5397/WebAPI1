@@ -231,7 +231,40 @@ public class AdminController : ControllerBase
         await _adminService.DeleteHierarchyRuleAsync(id, ct);
         return NoContent();
     }
-    
+
+    // ======= 組織「網域」 APIs =======
+    [HttpGet("org/domains")]
+    public async Task<ActionResult<List<OrgDomainDto>>> GetOrgDomains([FromQuery] int? orgId, CancellationToken ct)
+        => Ok(await _adminService.GetOrgDomainsAsync(orgId, ct));
+
+    [HttpGet("org/domains/{id:int}")]
+    public async Task<ActionResult<OrgDomainDto>> GetOrgDomain([FromRoute] int id, CancellationToken ct)
+    {
+        var domain = await _adminService.GetOrgDomainAsync(id, ct);
+        return domain is null ? NotFound() : Ok(domain);
+    }
+
+    [HttpPost("org/domains")]
+    public async Task<IActionResult> CreateOrgDomain([FromBody] OrgDomainUpsertDto dto, CancellationToken ct)
+    {
+        var id = await _adminService.CreateOrgDomainAsync(dto, ct);
+        return CreatedAtAction(nameof(GetOrgDomain), new { id }, new { id });
+    }
+
+    [HttpPut("org/domains/{id:int}")]
+    public async Task<IActionResult> UpdateOrgDomain([FromRoute] int id, [FromBody] OrgDomainUpsertDto dto, CancellationToken ct)
+    {
+        await _adminService.UpdateOrgDomainAsync(id, dto, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("org/domains/{id:int}")]
+    public async Task<IActionResult> DeleteOrgDomain([FromRoute] int id, CancellationToken ct)
+    {
+        await _adminService.DeleteOrgDomainAsync(id, ct);
+        return NoContent();
+    }
+
     // ===== Fields =====
     [HttpGet("kpi/fields")]
     public async Task<ActionResult<IEnumerable<KpiFieldDto>>> GetFields(CancellationToken ct)

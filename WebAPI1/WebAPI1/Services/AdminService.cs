@@ -250,6 +250,19 @@ public record SuggestReportUpsertDto(
     string? Remark,
     int? KpiFieldId);
 
+// OrganizationDomain
+public record OrgDomainDto(
+    int Id, int OrganizationId, string OrganizationName,
+    string DomainName, string? Description,
+    bool IsPrimary, bool IsSharedWithChildren,
+    int Priority, bool IsActive,
+    DateTime? VerifiedAt, DateTime CreatedAt);
+
+public record OrgDomainUpsertDto(
+    int OrganizationId, string DomainName, string? Description,
+    bool IsPrimary, bool IsSharedWithChildren,
+    int Priority, bool IsActive);
+
 public interface IAdminService
 {
     Task<PermissionMatrixDto> GetMatrixAsync(CancellationToken ct = default);
@@ -292,7 +305,14 @@ public interface IAdminService
     Task<int> CreateHierarchyRuleAsync(AdminController.HierRuleUpsertDto dto, CancellationToken ct);
     Task UpdateHierarchyRuleAsync(int id, AdminController.HierRuleUpsertDto dto, CancellationToken ct);
     Task DeleteHierarchyRuleAsync(int id, CancellationToken ct);
-    
+
+    // === 組織「網域」 ===
+    Task<List<OrgDomainDto>> GetOrgDomainsAsync(int? orgId, CancellationToken ct);
+    Task<OrgDomainDto?> GetOrgDomainAsync(int id, CancellationToken ct);
+    Task<int> CreateOrgDomainAsync(OrgDomainUpsertDto dto, CancellationToken ct);
+    Task UpdateOrgDomainAsync(int id, OrgDomainUpsertDto dto, CancellationToken ct);
+    Task DeleteOrgDomainAsync(int id, CancellationToken ct);
+
     // === KPI ===
     // Fields
     Task<IEnumerable<KpiFieldDto>> GetFieldsAsync(CancellationToken ct);
@@ -1122,7 +1142,106 @@ public class AdminService: IAdminService
         _context.OrganizationHierarchies.Remove(entity);
         await _context.SaveChangesAsync(ct);
     }
-    
+
+    // ================== 組織「網域」 ==================
+    public async Task<List<OrgDomainDto>> GetOrgDomainsAsync(int? orgId, CancellationToken ct)
+    {
+        var query = _context.OrganizationDomains
+            .Include(d => d.Organization)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (orgId.HasValue)
+            query = query.Where(d => d.OrganizationId == orgId.Value);
+
+        return await query
+            .OrderBy(d => d.OrganizationId).ThenBy(d => d.Priority)
+            .Select(d => new OrgDomainDto(
+                d.Id, d.OrganizationId, d.Organization.Name,
+                d.DomainName, d.Description,
+                d.IsPrimary, d.IsSharedWithChildren,
+                d.Priority, d.IsActive,
+                d.VerifiedAt, d.CreatedAt
+            ))
+            .ToListAsync(ct);
+    }
+
+    public async Task<OrgDomainDto?> GetOrgDomainAsync(int id, CancellationToken ct)
+    {
+        return await _context.OrganizationDomains
+            .Include(d => d.Organization)
+            .AsNoTracking()
+            .Where(d => d.Id == id)
+            .Select(d => new OrgDomainDto(
+                d.Id, d.OrganizationId, d.Organization.Name,
+                d.DomainName, d.Description,
+                d.IsPrimary, d.IsSharedWithChildren,
+                d.Priority, d.IsActive,
+                d.VerifiedAt, d.CreatedAt
+            ))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<int> CreateOrgDomainAsync(OrgDomainUpsertDto dto, CancellationToken ct)
+    {
+        var orgExists = await _context.Organizations.AnyAsync(o => o.Id == dto.OrganizationId, ct);
+        if (!orgExists) throw new KeyNotFoundException($"找不到組織 ID={dto.OrganizationId}");
+
+        var dup = await _context.OrganizationDomains
+            .AnyAsync(d => d.DomainName == dto.DomainName && d.OrganizationId == dto.OrganizationId, ct);
+        if (dup) throw new InvalidOperationException($"該組織已存在相同網域：{dto.DomainName}");
+
+        var entity = new OrganizationDomain
+        {
+            OrganizationId = dto.OrganizationId,
+            DomainName = dto.DomainName,
+            Description = dto.Description,
+            IsPrimary = dto.IsPrimary,
+            IsSharedWithChildren = dto.IsSharedWithChildren,
+            Priority = dto.Priority,
+            IsActive = dto.IsActive,
+            CreatedAt = tool.GetTaiwanNow(),
+            UpdatedAt = tool.GetTaiwanNow()
+        };
+        _context.OrganizationDomains.Add(entity);
+        await _context.SaveChangesAsync(ct);
+        return entity.Id;
+    }
+
+    public async Task UpdateOrgDomainAsync(int id, OrgDomainUpsertDto dto, CancellationToken ct)
+    {
+        var entity = await _context.OrganizationDomains.FindAsync([id], ct)
+                     ?? throw new KeyNotFoundException($"找不到網域 ID={id}");
+
+        var orgExists = await _context.Organizations.AnyAsync(o => o.Id == dto.OrganizationId, ct);
+        if (!orgExists) throw new KeyNotFoundException($"找不到組織 ID={dto.OrganizationId}");
+
+        // 檢查同組織下域名是否重複（排除自身）
+        var dup = await _context.OrganizationDomains
+            .AnyAsync(d => d.DomainName == dto.DomainName && d.OrganizationId == dto.OrganizationId && d.Id != id, ct);
+        if (dup) throw new InvalidOperationException($"該組織已存在相同網域：{dto.DomainName}");
+
+        entity.OrganizationId = dto.OrganizationId;
+        entity.DomainName = dto.DomainName;
+        entity.Description = dto.Description;
+        entity.IsPrimary = dto.IsPrimary;
+        entity.IsSharedWithChildren = dto.IsSharedWithChildren;
+        entity.Priority = dto.Priority;
+        entity.IsActive = dto.IsActive;
+        entity.UpdatedAt = tool.GetTaiwanNow();
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteOrgDomainAsync(int id, CancellationToken ct)
+    {
+        var entity = await _context.OrganizationDomains.FirstOrDefaultAsync(d => d.Id == id, ct);
+        if (entity == null) return;
+
+        _context.OrganizationDomains.Remove(entity);
+        await _context.SaveChangesAsync(ct);
+    }
+
     // =============== Helpers ===============
 
     private static bool Overlaps(int start1, int? end1, int start2, int? end2)

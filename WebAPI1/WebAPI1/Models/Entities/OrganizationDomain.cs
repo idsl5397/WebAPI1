@@ -6,8 +6,6 @@ namespace WebAPI1.Entities;
 
 public class OrganizationDomain
 {
-    public object domain;
-
     /// <summary>
     /// 域名ID
     /// </summary>

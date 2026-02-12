@@ -504,12 +504,6 @@ D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\scopedcss
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets.build.json
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets.development.json
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets\msbuild.WebAPI1.Microsoft.AspNetCore.StaticWebAssets.props
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets\msbuild.WebAPI1.Microsoft.AspNetCore.StaticWebAssetEndpoints.props
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets\msbuild.build.WebAPI1.props
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.WebAPI1.props
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.WebAPI1.props
-D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets.pack.json
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\WebAPI1.csproj.Up2Date
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\WebAPI1.dll
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\refint\WebAPI1.dll
@@ -543,3 +537,9 @@ D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\Pipelines
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\StackExchange.Redis.dll
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\NReJSON.dll
 D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\bin\Debug\net8.0\WebAPI1.staticwebassets.runtime.json
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\rjimswa.dswa.cache.json
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\staticwebassets.build.json.cache
+D:\D曹\宜蓁\web api 練習\WebAPI1\WebAPI1\WebAPI1\obj\Debug\net8.0\swae.build.ex.cache
