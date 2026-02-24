@@ -116,6 +116,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Permission:delete", policy => policy.RequireClaim("permission", "delete"));
     options.AddPolicy("Permission:view-ranking", policy => policy.RequireClaim("permission", "view-ranking"));
     options.AddPolicy("Permission:view-report", policy => policy.RequireClaim("permission", "view-report"));
+    options.AddPolicy("Permission:kpi-approve", policy => policy.RequireClaim("permission", "kpi-approve"));
     // ➕ 依你資料庫還有哪些 Permission.Key 自動加上
 });
 
@@ -162,6 +163,12 @@ Console.WriteLine($"SQL 連線字串: {connectionString}");
 
 var app = builder.Build();
 // app.Urls.Add("http://0.0.0.0:8080");
+
+// QuestPDF 社群授權 + 中文字體（楷書）
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+var kaiuFontPath = Path.Combine(app.Environment.WebRootPath, "fonts", "kaiu.ttf");
+using var kaiuFontStream = System.IO.File.OpenRead(kaiuFontPath);
+QuestPDF.Drawing.FontManager.RegisterFontWithCustomName("KaiU", kaiuFontStream);
 
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())

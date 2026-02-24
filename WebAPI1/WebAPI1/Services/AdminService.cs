@@ -284,6 +284,26 @@ public record OrgDomainUpsertDto(
     bool IsPrimary, bool IsSharedWithChildren,
     int Priority, bool IsActive);
 
+// KPI 審核用 DTO
+public record KpiReportReviewDto(
+    int Id,
+    int KpiDataId,
+    int? OrganizationId,
+    string? OrganizationName,
+    string? IndicatorNumber,
+    string? IndicatorName,
+    string? DetailItemName,
+    string? Field,
+    int Year,
+    string Period,
+    decimal? Value,
+    bool IsSkipped,
+    string? Remarks,
+    string Status,
+    DateTime? CreatedAt,
+    DateTime? UpdateAt
+);
+
 public interface IAdminService
 {
     Task<PermissionMatrixDto> GetMatrixAsync(CancellationToken ct = default);
@@ -377,7 +397,9 @@ public interface IAdminService
     Task UpdateReportAsync(int reportId, KpiReportUpsertDto dto, CancellationToken ct);
     Task DeleteReportAsync(int reportId, CancellationToken ct);
     Task ChangeReportStatusAsync(int reportId, byte newStatus, CancellationToken ct);
-    
+    Task BatchChangeReportStatusAsync(IEnumerable<int> ids, byte newStatus, CancellationToken ct);
+    Task<List<KpiReportReviewDto>> GetKpiReportsForReviewAsync(byte? status, int? organizationId, int? year, string? period, CancellationToken ct);
+
     //kpiCycle
     Task<IEnumerable<KpiCycleDto>> ListCyclesAsync(CancellationToken ct);
     Task<int> CreateCycleAsync(KpiCycleUpsertDto dto, CancellationToken ct);
@@ -1340,7 +1362,7 @@ public class AdminService: IAdminService
     private static readonly Dictionary<ReportStatus, ReportStatus[]> AllowedStatusFlows = new()
     {
         { ReportStatus.Draft,     new[]{ ReportStatus.Submitted } },
-        { ReportStatus.Submitted, new[]{ ReportStatus.Reviewed, ReportStatus.Returned } },
+        { ReportStatus.Submitted, new[]{ ReportStatus.Reviewed, ReportStatus.Returned, ReportStatus.Finalized } },
         { ReportStatus.Returned,  new[]{ ReportStatus.Submitted } },
         { ReportStatus.Reviewed,  new[]{ ReportStatus.Finalized, ReportStatus.Returned } },
         { ReportStatus.Finalized, Array.Empty<ReportStatus>() }
@@ -1933,10 +1955,75 @@ public class AdminService: IAdminService
             throw new InvalidOperationException($"不允許由 {e.Status} 轉為 {ns}");
 
         e.Status = ns;
-        e.UpdateAt = DateTime.UtcNow;
+        e.UpdateAt = tool.GetTaiwanNow();
         await _context.SaveChangesAsync(ct);
     }
-    
+
+    public async Task<List<KpiReportReviewDto>> GetKpiReportsForReviewAsync(
+        byte? status, int? organizationId, int? year, string? period, CancellationToken ct)
+    {
+        var query = _context.KpiReports
+            .Include(r => r.KpiData)
+                .ThenInclude(d => d.Organization)
+            .Include(r => r.KpiData.DetailItem)
+                .ThenInclude(di => di.KpiDetailItemNames)
+            .Include(r => r.KpiData.DetailItem.KpiItem)
+                .ThenInclude(i => i.KpiItemNames)
+            .Include(r => r.KpiData.DetailItem.KpiItem)
+                .ThenInclude(i => i.KpiField)
+            .AsQueryable();
+
+        if (status.HasValue)
+            query = query.Where(r => (byte)r.Status == status.Value);
+        if (organizationId.HasValue)
+            query = query.Where(r => r.KpiData.OrganizationId == organizationId.Value);
+        if (year.HasValue)
+            query = query.Where(r => r.Year == year.Value);
+        if (!string.IsNullOrWhiteSpace(period))
+            query = query.Where(r => r.Period == period);
+
+        var list = await query.OrderByDescending(r => r.UpdateAt).ToListAsync(ct);
+
+        return list.Select(r => new KpiReportReviewDto(
+            r.Id,
+            r.KpiDataId,
+            r.KpiData?.OrganizationId,
+            r.KpiData?.Organization?.Name,
+            r.KpiData?.DetailItem?.KpiItem?.IndicatorNumber.ToString(),
+            r.KpiData?.DetailItem?.KpiItem?.KpiItemNames
+                .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+            r.KpiData?.DetailItem?.KpiDetailItemNames
+                .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name,
+            r.KpiData?.DetailItem?.KpiItem?.KpiField?.field,
+            r.Year,
+            r.Period,
+            r.KpiReportValue,
+            r.IsSkipped,
+            r.Remarks,
+            r.Status.ToString(),
+            r.CreatedAt,
+            r.UpdateAt
+        )).ToList();
+    }
+
+    public async Task BatchChangeReportStatusAsync(IEnumerable<int> ids, byte newStatus, CancellationToken ct)
+    {
+        var ns = (ReportStatus)newStatus;
+        var reports = await _context.KpiReports
+            .Where(r => ids.Contains(r.Id))
+            .ToListAsync(ct);
+
+        foreach (var e in reports)
+        {
+            if (!AllowedStatusFlows.TryGetValue(e.Status, out var nexts) || !nexts.Contains(ns))
+                continue;
+            e.Status = ns;
+            e.UpdateAt = tool.GetTaiwanNow();
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task<IEnumerable<KpiCycleDto>> ListCyclesAsync(CancellationToken ct)
     {
         return await _context.KpiCycles

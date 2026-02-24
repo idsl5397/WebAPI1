@@ -4,6 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using WebAPI1.Context;
 using WebAPI1.Entities;
 using Exception = System.Exception;
@@ -162,6 +165,7 @@ public interface ISuggestService
     Task<(bool Success, string Message)> ImportAsync(IFormFile file);
     Task<List<object>> GetReportsByOrganizationAsync(int organizationId);
     Task<bool> UpdateSuggestReportsAsync(List<SuggestDto> reports);
+    Task<byte[]> GenerateSuggestReportPdfAsync(int organizationId);
     
 
     
@@ -1033,5 +1037,138 @@ public class SuggestService:ISuggestService
 
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<byte[]> GenerateSuggestReportPdfAsync(int organizationId)
+    {
+        // 1. 查詢組織名稱
+        var orgName = await _db.Organizations
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync() ?? organizationId.ToString();
+
+        // 2. 查詢該組織的所有委員建議報告
+        var reports = await _db.SuggestReports
+            .Include(r => r.SuggestDate)
+                .ThenInclude(d => d.Organization)
+            .Include(r => r.SuggestionType)
+            .Include(r => r.User)
+            .Include(r => r.SuggestDate.SuggestEventType)
+            .Where(r => r.SuggestDate.OrganizationId == organizationId)
+            .OrderByDescending(r => r.SuggestDate.Date)
+            .ToListAsync();
+
+        if (!reports.Any()) return Array.Empty<byte>();
+
+        var generatedAt = tool.GetTaiwanNow();
+
+        // 3. 建立 PDF（QuestPDF，橫向 A4）
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18, Unit.Point);
+                page.DefaultTextStyle(x => x.FontFamily("KaiU").FontSize(8));
+
+                page.Content().Column(col =>
+                {
+                    // 標題
+                    col.Item()
+                        .Text($"{orgName}　委員建議報告執行彙整")
+                        .FontSize(14).Bold();
+
+                    col.Item().PaddingTop(4);
+                    col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+                    col.Item().PaddingTop(4);
+
+                    // 表格
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(50);   // 日期
+                            cols.ConstantColumn(52);   // 會議/活動
+                            cols.ConstantColumn(40);   // 類別
+                            cols.ConstantColumn(36);   // 委員
+                            cols.RelativeColumn(3);    // 建議內容
+                            cols.ConstantColumn(46);   // 負責單位
+                            cols.ConstantColumn(40);   // 是否參採
+                            cols.RelativeColumn(3);    // 改善對策
+                            cols.ConstantColumn(36);   // 是否完成
+                            cols.RelativeColumn(2);    // 備註
+                        });
+
+                        // 表頭
+                        table.Header(header =>
+                        {
+                            string[] headers =
+                            {
+                                "日期", "會議/活動", "類別", "委員",
+                                "建議內容", "負責單位", "是否參採", "改善對策",
+                                "是否完成", "備註"
+                            };
+                            foreach (var h in headers)
+                            {
+                                header.Cell()
+                                    .Background(Colors.Grey.Lighten2)
+                                    .Border(0.5f).BorderColor(Colors.Grey.Medium)
+                                    .Padding(2)
+                                    .Text(h).Bold().FontSize(8);
+                            }
+                        });
+
+                        // 資料列
+                        bool alt = false;
+                        foreach (var r in reports)
+                        {
+                            var bgColor = alt ? Colors.Blue.Lighten5 : Colors.White;
+                            alt = !alt;
+
+                            string[] cells =
+                            {
+                                r.SuggestDate.Date.ToString("yyyy-MM-dd"),
+                                r.SuggestDate.SuggestEventType?.Name ?? "",
+                                r.SuggestionType?.Name ?? "",
+                                r.User?.Nickname ?? "",
+                                r.SuggestionContent ?? "",
+                                r.RespDept ?? "",
+                                r.IsAdopted?.ToString() ?? "",
+                                r.ImproveDetails ?? "",
+                                r.Completed?.ToString() ?? "",
+                                r.Remark ?? ""
+                            };
+
+                            foreach (var cell in cells)
+                            {
+                                table.Cell()
+                                    .Background(bgColor)
+                                    .Border(0.3f).BorderColor(Colors.Grey.Lighten2)
+                                    .Padding(2)
+                                    .Text(cell).FontSize(7);
+                            }
+                        }
+                    });
+                });
+
+                // 頁尾
+                page.Footer().Row(row =>
+                {
+                    row.RelativeItem()
+                        .Text($"經濟部產業園區管理局績效指標資料庫 - 資料產製時間：{generatedAt:yyyy/MM/dd HH:mm}　共 {reports.Count} 筆")
+                        .FontSize(7).FontColor(Colors.Grey.Medium);
+                    row.ConstantItem(60).AlignRight().Text(text =>
+                    {
+                        text.Span("第 ");
+                        text.CurrentPageNumber();
+                        text.Span(" / ");
+                        text.TotalPages();
+                        text.Span(" 頁");
+                    });
+                });
+            });
+        });
+
+        return document.GeneratePdf();
     }
 }

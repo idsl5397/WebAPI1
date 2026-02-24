@@ -2,10 +2,14 @@
 using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using WebAPI1.Context;
 using WebAPI1.Entities;
 
 namespace WebAPI1.Services;
+
 
 public class KpiImportConfirmDto
 {
@@ -265,11 +269,13 @@ public interface IKpiService
     Task<List<KpiPreviewDto>> ReadPreviewAsync(IFormFile file);
     //送出excel匯入廠商上傳的績效指標報告
     Task<(int inserted, int updated)> ImportAsync(IFormFile file, int organizationId, int year, string quarter);
+    /// <summary>產生 KPI 核准報告 PDF</summary>
+    Task<byte[]> GenerateKpiReportPdfAsync(int organizationId, int year, string quarter);
 }
 
 public class KpiService:IKpiService
 {
-    private readonly ISHAuditDbcontext _db;
+private readonly ISHAuditDbcontext _db;
     private readonly ILogger<KpiService> _logger;
     private readonly IOrganizationService _organizationService;
     private static int GetPeriodOrder(string? period)
@@ -550,6 +556,7 @@ public class KpiService:IKpiService
     //         IndicatorName = d.DetailItem.KpiItem.KpiItemNames
     //             .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
     //         DetailItemName = d.DetailItem.KpiDetailItemNames
+    
     //             .OrderByDescending(n => n.StartYear).FirstOrDefault().Name,
     //         Unit = d.DetailItem.Unit,
     //         IsApplied = d.IsApplied,
@@ -943,12 +950,12 @@ public class KpiService:IKpiService
 
             if (existing != null)
             {
-                if (existing.Status == ReportStatus.Draft) // 若已有草稿，就更新成正式
+                if (existing.Status == ReportStatus.Draft || existing.Status == ReportStatus.Returned) // 若已有草稿或退回，就更新成待審核
                 {
                     existing.KpiReportValue = r.IsSkipped ? null : r.Value;
                     existing.IsSkipped = r.IsSkipped;
                     existing.Remarks = r.Remark;
-                    existing.Status = ReportStatus.Finalized;
+                    existing.Status = ReportStatus.Submitted;
                     existing.UpdateAt = now;
                 }
                 else
@@ -968,7 +975,7 @@ public class KpiService:IKpiService
                     Remarks = r.Remark,
                     CreatedAt = now,
                     UpdateAt = now,
-                    Status = ReportStatus.Finalized
+                    Status = ReportStatus.Submitted
                 };
                 _db.KpiReports.Add(entity);
             }
@@ -1852,4 +1859,184 @@ public class KpiService:IKpiService
         await _db.SaveChangesAsync();
         return (inserted, updated);
     }
+
+    public async Task<byte[]> GenerateKpiReportPdfAsync(int organizationId, int year, string quarter)
+    {
+        // 1. 查詢組織名稱
+        var orgName = await _db.Organizations
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync() ?? organizationId.ToString();
+
+        // 2. 查詢該期間已核准的 KPI 報告
+        var rows = await _db.KpiReports
+            .Include(r => r.KpiData)
+                .ThenInclude(d => d.DetailItem)
+                    .ThenInclude(di => di.KpiDetailItemNames)
+            .Include(r => r.KpiData.DetailItem.KpiItem)
+                .ThenInclude(i => i.KpiItemNames)
+            .Include(r => r.KpiData.DetailItem.KpiItem.KpiField)
+            .Where(r =>
+                r.Year == year &&
+                r.Period == quarter &&
+                r.Status == ReportStatus.Finalized &&
+                r.KpiData.OrganizationId == organizationId)
+            .OrderBy(r => r.KpiData.DetailItem.KpiItem.IndicatorNumber)
+            .ToListAsync();
+
+        if (!rows.Any()) return Array.Empty<byte>();
+
+        var approvedAt = rows.Max(r => r.UpdateAt);
+        var generatedAt = tool.GetTaiwanNow();
+        var totalRows = rows.Count;
+
+        // 3. 建立 PDF（QuestPDF，橫向 A4）
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(20, Unit.Point);
+                page.DefaultTextStyle(x => x.FontFamily("KaiU").FontSize(8));
+
+                page.Content().Column(col =>
+                {
+                    // 標題
+                    col.Item()
+                        .Text($"{orgName}　{year} 年 {quarter}　KPI 績效指標執行報告")
+                        .FontSize(14).Bold();
+
+                    col.Item().PaddingTop(2);
+
+                    // 審核通過時間
+                    if (approvedAt.HasValue)
+                    {
+                        col.Item()
+                            .Text($"審核通過時間：{approvedAt.Value:yyyy/MM/dd HH:mm}")
+                            .FontSize(7).FontColor(Colors.Grey.Medium);
+                        col.Item().PaddingTop(2);
+                    }
+
+                    col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+                    col.Item().PaddingTop(4);
+
+                    // 表格
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(48);   // 指標編號
+                            cols.ConstantColumn(36);   // 領域
+                            cols.RelativeColumn(3);    // 指標名稱
+                            cols.RelativeColumn(3);    // 細項名稱
+                            cols.ConstantColumn(30);   // 單位
+                            cols.ConstantColumn(34);   // 基準年
+                            cols.ConstantColumn(44);   // 基準值
+                            cols.ConstantColumn(44);   // 目標值
+                            cols.ConstantColumn(44);   // 執行值
+                            cols.ConstantColumn(26);   // 達標
+                            cols.RelativeColumn(2);    // 備註
+                        });
+
+                        // 表頭
+                        table.Header(header =>
+                        {
+                            string[] headers =
+                            {
+                                "指標編號", "領域", "指標名稱", "細項名稱",
+                                "單位", "基準年", "基準值", "目標值", "執行值", "達標", "備註"
+                            };
+                            foreach (var h in headers)
+                            {
+                                header.Cell()
+                                    .Background(Colors.Grey.Lighten2)
+                                    .Border(0.5f).BorderColor(Colors.Grey.Medium)
+                                    .Padding(3)
+                                    .Text(h).Bold().FontSize(9);
+                            }
+                        });
+
+                        // 資料列
+                        bool alt = false;
+                        foreach (var r in rows)
+                        {
+                            var d = r.KpiData;
+                            var indicatorName = d.DetailItem?.KpiItem?.KpiItemNames
+                                .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name ?? "";
+                            var detailName = d.DetailItem?.KpiDetailItemNames
+                                .OrderByDescending(n => n.StartYear).FirstOrDefault()?.Name ?? "";
+                            var field = d.DetailItem?.KpiItem?.KpiField?.field ?? "";
+                            var op    = d.DetailItem?.ComparisonOperator ?? ">=";
+                            bool met  = r.KpiReportValue.HasValue && d.TargetValue.HasValue
+                                        && CompareKpiValues(r.KpiReportValue.Value, d.TargetValue.Value, op);
+
+                            var bgColor = alt ? Colors.Blue.Lighten5 : Colors.White;
+                            alt = !alt;
+
+                            string[] cells =
+                            {
+                                d.DetailItem?.KpiItem?.IndicatorNumber.ToString() ?? "",
+                                field,
+                                indicatorName,
+                                detailName,
+                                d.DetailItem?.Unit ?? "",
+                                d.BaselineYear ?? "",
+                                d.BaselineValue?.ToString("N2") ?? "-",
+                                d.TargetValue?.ToString("N2") ?? "-",
+                                r.IsSkipped ? "不適用" : (r.KpiReportValue?.ToString("N2") ?? "-"),
+                                r.IsSkipped ? "—" : (met ? "✓" : "✗"),
+                                r.Remarks ?? ""
+                            };
+
+                            for (int i = 0; i < cells.Length; i++)
+                            {
+                                var cellContainer = table.Cell()
+                                    .Background(bgColor)
+                                    .Border(0.3f).BorderColor(Colors.Grey.Lighten2)
+                                    .Padding(3);
+
+                                if (i == 9 && !r.IsSkipped)
+                                {
+                                    var color = met ? Colors.Green.Darken2 : Colors.Red.Medium;
+                                    cellContainer.Text(cells[i]).FontColor(color);
+                                }
+                                else
+                                {
+                                    cellContainer.Text(cells[i]);
+                                }
+                            }
+                        }
+                    });
+                });
+
+                // 頁尾
+                page.Footer().Row(row =>
+                {
+                    row.RelativeItem()
+                        .Text($"經濟部產業園區管理局績效指標資料庫 - 資料產製時間：{generatedAt:yyyy/MM/dd HH:mm}　共 {totalRows} 筆")
+                        .FontSize(7).FontColor(Colors.Grey.Medium);
+                    row.ConstantItem(60).AlignRight().Text(text =>
+                    {
+                        text.Span("第 ");
+                        text.CurrentPageNumber();
+                        text.Span(" / ");
+                        text.TotalPages();
+                        text.Span(" 頁");
+                    });
+                });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
+    private static bool CompareKpiValues(decimal actual, decimal target, string op) => op switch
+    {
+        ">=" => actual >= target,
+        "<=" => actual <= target,
+        ">"  => actual > target,
+        "<"  => actual < target,
+        "="  => actual == target,
+        _    => actual >= target,
+    };
 }

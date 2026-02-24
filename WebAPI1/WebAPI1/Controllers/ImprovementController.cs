@@ -98,6 +98,26 @@ public class ImprovementController: ControllerBase
         return File(stream, contentType, safeName);
     }
     
+    [HttpGet("download-stamp")]
+    public async Task<IActionResult> DownloadStamp(
+        [FromQuery] int orgId,
+        [FromQuery] int year,
+        [FromQuery] int quarter,
+        [FromQuery] string oriName,
+        [FromQuery] string filePath,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return BadRequest(new { message = "filePath 不可為空" });
+
+        var bytes = await _improvementService.GenerateImprovementStampAsync(orgId, year, quarter, oriName, filePath);
+        if (bytes == null || bytes.Length == 0)
+            return NotFound(new { message = "無法生成下載記錄，請確認檔案是否存在" });
+
+        return File(bytes, "application/pdf",
+            $"改善報告書_下載記錄_{orgId}_{year}_Q{quarter}_{DateTime.Now:yyyyMMdd}.pdf");
+    }
+
     // [HttpGet("DownloadFile")]
     // [SwaggerOperation(Summary = "下載檔案", Description = "下載指定路徑的檔案")]
     // public async Task<IActionResult> DownloadFile([FromQuery] string path)

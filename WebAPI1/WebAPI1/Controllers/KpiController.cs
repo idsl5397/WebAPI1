@@ -276,6 +276,21 @@ public class KpiController: ControllerBase
         }
     }
     
+    [HttpGet("report-pdf")]
+    [Authorize]
+    public async Task<IActionResult> DownloadKpiReportPdf(
+        [FromQuery] int organizationId,
+        [FromQuery] int year,
+        [FromQuery] string quarter)
+    {
+        var bytes = await _kpiService.GenerateKpiReportPdfAsync(organizationId, year, quarter);
+        if (bytes == null || bytes.Length == 0)
+            return NotFound(new { success = false, message = "無可下載的核准報告" });
+
+        return File(bytes, "application/pdf",
+            $"KPI_Report_{organizationId}_{year}_{quarter}.pdf");
+    }
+
     [HttpGet("report-history")]
     public async Task<IActionResult> GetReportHistory([FromQuery] int kpiDataId)
     {

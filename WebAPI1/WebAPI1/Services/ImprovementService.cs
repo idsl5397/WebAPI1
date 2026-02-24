@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using PdfSharpCore.Pdf;
+using PdfSharpCore.Pdf.IO;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using WebAPI1.Context;
 using WebAPI1.Entities;
 using File = System.IO.File;
@@ -15,6 +20,7 @@ public interface IImprovementService
     Task<bool> SubmitReportAsync(int orgId, int year, int quarter, string filePath, Guid userId);
     Task<bool> DeleteFileAsync(string filePath, int? orgId = null, CancellationToken ct = default);
     Task<(Stream Stream, string ContentType, string FileName)?> OpenReadAsync(string orgId, string fileName, CancellationToken ct = default);
+    Task<byte[]> GenerateImprovementStampAsync(int orgId, int year, int quarter, string oriName, string filePath);
 }
 
 public class ImprovementService:IImprovementService
@@ -183,6 +189,109 @@ public class ImprovementService:IImprovementService
     }
     
     
+    public async Task<byte[]> GenerateImprovementStampAsync(int orgId, int year, int quarter, string oriName, string filePath)
+    {
+        var orgName = await _db.Organizations
+            .Where(o => o.Id == orgId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync() ?? orgId.ToString();
+
+        var generatedAt = tool.GetTaiwanNow();
+
+        // 1. 讀取原始 PDF
+        var root = _env.WebRootPath ?? _env.ContentRootPath;
+        var absolutePath = Path.GetFullPath(Path.Combine(root, filePath.TrimStart('/', '\\')));
+        if (!absolutePath.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(absolutePath))
+            return Array.Empty<byte>();
+
+        var originalBytes = await System.IO.File.ReadAllBytesAsync(absolutePath);
+
+        // 2. 計算 SHA-256（供使用者驗證檔案完整性）
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var fileHash = BitConverter.ToString(sha256.ComputeHash(originalBytes)).Replace("-", "").ToLowerInvariant();
+
+        // 3. QuestPDF 產生中文憑證頁
+        var certBytes = GenerateCertificatePage(orgName, year, quarter, oriName, generatedAt, fileHash);
+
+        // 4. PdfSharpCore 合併：憑證頁（首頁）＋ 原始 PDF 各頁
+        using var certMs = new MemoryStream(certBytes);
+        using var origMs = new MemoryStream(originalBytes);
+        using var certDoc = PdfReader.Open(certMs, PdfDocumentOpenMode.Import);
+        using var origDoc = PdfReader.Open(origMs, PdfDocumentOpenMode.Import);
+
+        var merged = new PdfDocument();
+        merged.AddPage(certDoc.Pages[0]);
+        for (int i = 0; i < origDoc.Pages.Count; i++)
+            merged.AddPage(origDoc.Pages[i]);
+
+        using var dstMs = new MemoryStream();
+        merged.Save(dstMs, false);
+        return dstMs.ToArray();
+    }
+
+    private static byte[] GenerateCertificatePage(string orgName, int year, int quarter, string oriName, DateTime generatedAt, string fileHash)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(50, Unit.Point);
+                page.DefaultTextStyle(x => x.FontFamily("KaiU").FontSize(11));
+
+                page.Content().Column(col =>
+                {
+                    col.Item()
+                        .PaddingBottom(12)
+                        .Text($"{orgName}　改善報告書下載紀錄")
+                        .FontSize(18).Bold().AlignCenter();
+
+                    col.Item()
+                        .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                        .PaddingBottom(16)
+                        .Column(inner =>
+                        {
+                            inner.Item().PaddingBottom(8).Text(t =>
+                            {
+                                t.Span("公司/工廠：").SemiBold();
+                                t.Span(orgName);
+                            });
+                            inner.Item().PaddingBottom(8).Text(t =>
+                            {
+                                t.Span("報告期間：").SemiBold();
+                                t.Span($"民國 {year} 年 第 {quarter} 季");
+                            });
+                            inner.Item().PaddingBottom(8).Text(t =>
+                            {
+                                t.Span("檔案名稱：").SemiBold();
+                                t.Span(oriName);
+                            });
+                            inner.Item().PaddingBottom(8).Text(t =>
+                            {
+                                t.Span("經濟部產業園區管理局績效指標資料庫 - 資料產製時間：").SemiBold();
+                                t.Span($"{generatedAt:yyyy/MM/dd HH:mm}");
+                            });
+                            inner.Item().PaddingBottom(8).Text(t =>
+                            {
+                                t.Span("檔案完整性驗證（SHA-256）：").SemiBold();
+                                t.Span(fileHash).FontSize(8).FontColor(Colors.Grey.Darken1);
+                            });
+                        });
+                });
+
+                page.Footer().AlignRight().Text(t =>
+                {
+                    t.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Grey.Medium));
+                    t.Span($"經濟部產業園區管理局績效指標資料庫 - 資料產製時間：{generatedAt:yyyy/MM/dd HH:mm}");
+                });
+            });
+        });
+
+        using var ms = new MemoryStream();
+        document.GeneratePdf(ms);
+        return ms.ToArray();
+    }
+
     private string GetMimeType(string extension)
     {
         return extension.ToLowerInvariant() switch

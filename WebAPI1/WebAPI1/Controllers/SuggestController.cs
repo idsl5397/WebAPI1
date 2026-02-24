@@ -176,6 +176,20 @@ public class SuggestController: ControllerBase
         return Ok(data);
     }
     
+    [HttpGet("report-pdf")]
+    public async Task<IActionResult> DownloadSuggestReportPdf([FromQuery] int organizationId)
+    {
+        if (organizationId <= 0)
+            return BadRequest(new { message = "缺少有效的 organizationId" });
+
+        var bytes = await _suggestService.GenerateSuggestReportPdfAsync(organizationId);
+        if (bytes == null || bytes.Length == 0)
+            return NotFound(new { message = "該組織目前無委員建議報告資料" });
+
+        return File(bytes, "application/pdf",
+            $"委員建議報告_{organizationId}_{DateTime.Now:yyyyMMdd}.pdf");
+    }
+
     [HttpPut("update-report")]
     public async Task<IActionResult> UpdateReport([FromBody] List<SuggestDto> reports)
     {

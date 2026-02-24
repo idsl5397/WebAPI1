@@ -405,8 +405,15 @@ public class AdminController : ControllerBase
 
     // 狀態流轉：submit/review/return/finalize
     [HttpPatch("kpi/reports/{reportId:int}/status")]
-    public async Task<IActionResult> ChangeReportStatus(int reportId, [FromBody] byte newStatus, CancellationToken ct)
-    { await _adminService.ChangeReportStatusAsync(reportId, newStatus, ct); return NoContent(); }
+    [Authorize(Policy = "Permission:kpi-approve")]
+    public async Task<IActionResult> ChangeReportStatus(int reportId, [FromBody] ChangeStatusReq req, CancellationToken ct)
+    { await _adminService.ChangeReportStatusAsync(reportId, req.NewStatus, ct); return NoContent(); }
+
+    // 批量狀態流轉
+    [HttpPost("kpi/reports/batch-status")]
+    [Authorize(Policy = "Permission:kpi-approve")]
+    public async Task<IActionResult> BatchChangeReportStatus([FromBody] BatchStatusReq req, CancellationToken ct)
+    { await _adminService.BatchChangeReportStatusAsync(req.Ids, req.NewStatus, ct); return NoContent(); }
     
     // ===== KpiCycles =====
     [HttpGet("kpi/cycles")]
@@ -520,4 +527,22 @@ public class AdminController : ControllerBase
             throw new InvalidOperationException("無法解析使用者識別");
         return userId;
     }
+
+    // ======= KPI 審核 =======
+
+    [HttpGet("kpi/reports")]
+    [Authorize(Policy = "Permission:kpi-approve")]
+    public async Task<IActionResult> GetKpiReports(
+        [FromQuery] byte? status,
+        [FromQuery] int? organizationId,
+        [FromQuery] int? year,
+        [FromQuery] string? period,
+        CancellationToken ct)
+    {
+        var result = await _adminService.GetKpiReportsForReviewAsync(status, organizationId, year, period, ct);
+        return Ok(new { success = true, data = result });
+    }
+
+    public record ChangeStatusReq(byte NewStatus);
+    public record BatchStatusReq(List<int> Ids, byte NewStatus);
 }
