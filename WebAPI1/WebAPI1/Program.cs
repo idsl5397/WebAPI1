@@ -167,8 +167,15 @@ var app = builder.Build();
 // QuestPDF 社群授權 + 中文字體（楷書）
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 var kaiuFontPath = Path.Combine(app.Environment.WebRootPath, "fonts", "kaiu.ttf");
-using var kaiuFontStream = System.IO.File.OpenRead(kaiuFontPath);
-QuestPDF.Drawing.FontManager.RegisterFontWithCustomName("KaiU", kaiuFontStream);
+if (System.IO.File.Exists(kaiuFontPath))
+{
+    using var kaiuFontStream = System.IO.File.OpenRead(kaiuFontPath);
+    QuestPDF.Drawing.FontManager.RegisterFontWithCustomName("KaiU", kaiuFontStream);
+}
+else
+{
+    Console.WriteLine("[Warning] kaiu.ttf 字體檔案不存在，PDF 中文字體將無法使用");
+}
 
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())
