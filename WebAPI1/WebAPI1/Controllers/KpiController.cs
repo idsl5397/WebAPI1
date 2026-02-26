@@ -311,12 +311,19 @@ public class KpiController: ControllerBase
     }
     
     [HttpGet("download-template")]
-    public async Task<IActionResult> DownloadTemplate([FromQuery] int organizationId)
+    public async Task<IActionResult> DownloadTemplate(
+        [FromQuery] int organizationId,
+        [FromQuery] int? year,
+        [FromQuery] string? quarter)
     {
         if (organizationId <= 0)
             return BadRequest("缺少有效的 organizationId");
 
-        var (fileName, content) = await _kpiService.GenerateTemplateAsync(organizationId);
+        var now = DateTime.Now;
+        var resolvedYear    = year    ?? (now.Year - 1911);
+        var resolvedQuarter = quarter ?? "Q2";
+
+        var (fileName, content) = await _kpiService.GenerateTemplateAsync(organizationId, resolvedYear, resolvedQuarter);
 
         return File(content,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -349,9 +356,13 @@ public class KpiController: ControllerBase
     }
     
     [HttpPost("fullsubmit-for-report")]
+    [Authorize]
     public async Task<IActionResult> FullImportAsync(IFormFile file, int organizationId, int year, string quarter)
     {
-        var (inserted, updated) = await _kpiService.ImportAsync(file, organizationId, year, quarter);
-        return Ok(new { inserted, updated });
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "未上傳檔案" });
+
+        var (inserted, updated, skipped) = await _kpiService.ImportAsync(file, organizationId, year, quarter);
+        return Ok(new { inserted, updated, skipped });
     }
 }

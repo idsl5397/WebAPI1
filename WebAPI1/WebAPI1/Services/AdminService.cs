@@ -39,6 +39,7 @@ public record UserListItemDto
     public string Account { get; init; } = "";          // Username
     public string[] Roles { get; init; } = Array.Empty<string>();
     public string? Unit { get; init; }
+    public string? OrganizationName { get; init; }
     public string Status { get; init; } = "active";     // active | pending | disabled
     public DateTime? LastLoginAt { get; init; }
     public bool EmailVerified { get; init; }
@@ -722,7 +723,8 @@ public class AdminService: IAdminService
         _logger.LogInformation("SearchUsers Q='{Q}', Role='{Role}', Status='{Status}'", query.Q, query.Role, query.Status);
         var page = Math.Max(1, query.Page);
         IQueryable<User> q = _context.Users.AsNoTracking();
-        q = q.Include(u => u.UserRoles).ThenInclude(ur => ur.Role);
+        q = q.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+             .Include(u => u.Organization);
 
         // 1️⃣ 關鍵字搜尋 (使用者名稱、暱稱、單位)
         if (!string.IsNullOrWhiteSpace(query.Q))
@@ -770,6 +772,7 @@ public class AdminService: IAdminService
                 Account = u.Username,
                 Roles = u.UserRoles.Select(ur => ur.Role.Name).ToArray(),
                 Unit = u.Unit,
+                OrganizationName = u.Organization != null ? u.Organization.Name : null,
                 Status = !u.IsActive ? "disabled" : (!u.EmailVerified ? "pending" : "active"),
                 LastLoginAt = u.LastLoginAt,
                 EmailVerified = u.EmailVerified

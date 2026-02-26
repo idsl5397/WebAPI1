@@ -263,12 +263,12 @@ public interface IKpiService
     /// </summary>
     /// <param name="organizationId">公司／工廠 OrgId</param>
     /// <returns>檔名與 Excel 位元組</returns>
-    Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId);
+    Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId, int year, string quarter);
 
     //預覽excel匯入廠商上傳的績效指標報告
     Task<List<KpiPreviewDto>> ReadPreviewAsync(IFormFile file);
     //送出excel匯入廠商上傳的績效指標報告
-    Task<(int inserted, int updated)> ImportAsync(IFormFile file, int organizationId, int year, string quarter);
+    Task<(int inserted, int updated, int skipped)> ImportAsync(IFormFile file, int organizationId, int year, string quarter);
     /// <summary>產生 KPI 核准報告 PDF</summary>
     Task<byte[]> GenerateKpiReportPdfAsync(int organizationId, int year, string quarter);
 }
@@ -1664,13 +1664,13 @@ private readonly ISHAuditDbcontext _db;
             _ => "Q4",
         };
     }
-    public async Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId)
+    public async Task<(string FileName, byte[] Content)> GenerateTemplateAsync(int organizationId, int year, string quarter)
     {
-        var now = DateTime.Now;
-        var year = now.Year - 1911;
-        var quarter = GetQuarter(now);
-
         var data = await GetKpiDataDtoByOrganizationIdAsync(organizationId, year, quarter);
+
+        // 只保留可填報的狀態：尚未填報(-1)、草稿(0)、已退回(3)
+        // Submitted(1)、Reviewed(2)、Finalized(4) 不需要下載重填
+        data = data.Where(d => d.Status == -1 || d.Status == 0 || d.Status == 3).ToList();
 
         var workbook = new XSSFWorkbook();
         var sheet = workbook.CreateSheet("KPI");
@@ -1736,7 +1736,7 @@ private readonly ISHAuditDbcontext _db;
 
         using var stream = new MemoryStream();
         workbook.Write(stream);
-        var fileName = $"KPI_Template_{year}Q{quarter}.xlsx";
+        var fileName = $"KPI_Template_{year}_{quarter}.xlsx";
         return (fileName, stream.ToArray());
     }
     
@@ -1793,7 +1793,7 @@ private readonly ISHAuditDbcontext _db;
         return previewList;
     }
     
-    public async Task<(int inserted, int updated)> ImportAsync(
+    public async Task<(int inserted, int updated, int skipped)> ImportAsync(
         IFormFile file, int organizationId, int year, string quarter)
     {
         using var stream = file.OpenReadStream();
@@ -1802,6 +1802,7 @@ private readonly ISHAuditDbcontext _db;
 
         int inserted = 0;
         int updated  = 0;
+        int skipped  = 0;  // 審核中或已核准，本次不覆蓋
 
         for (int i = 1; i <= sheet.LastRowNum; i++)
         {
@@ -1825,19 +1826,25 @@ private readonly ISHAuditDbcontext _db;
 
             if (existing != null)
             {
-                // === 3A. 更新 ===
+                // === 狀態閘門：Submitted/Reviewed/Finalized 不可覆蓋，需等審核完成 ===
+                if (existing.Status == ReportStatus.Submitted ||
+                    existing.Status == ReportStatus.Reviewed  ||
+                    existing.Status == ReportStatus.Finalized)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                // === 3A. 更新（Draft 或 Returned 可重新送出） ===
                 existing.KpiReportValue = reportValue;
-                existing.Remarks = remarks;
-                existing.Status = 
-                    (reportValue.HasValue || !string.IsNullOrWhiteSpace(remarks))
-                        ? ReportStatus.Finalized
-                        : ReportStatus.Draft;
-                existing.UpdateAt = DateTime.Now;
+                existing.Remarks        = remarks;
+                existing.Status         = ReportStatus.Submitted;  // 需經審核，非直接定案
+                existing.UpdateAt       = DateTime.Now;
                 updated++;
             }
             else
             {
-                // === 3B. 新增 ===
+                // === 3B. 新增，送出待審核 ===
                 var report = new KpiReport
                 {
                     KpiDataId      = kpiDataId,
@@ -1845,10 +1852,7 @@ private readonly ISHAuditDbcontext _db;
                     Period         = quarter,
                     KpiReportValue = reportValue,
                     Remarks        = remarks,
-                    Status         = 
-                        (reportValue.HasValue || !string.IsNullOrWhiteSpace(remarks))
-                            ? ReportStatus.Finalized
-                            : ReportStatus.Draft,
+                    Status         = ReportStatus.Submitted,  // 需經審核，非直接定案
                     UpdateAt       = DateTime.Now
                 };
                 _db.KpiReports.Add(report);
@@ -1857,7 +1861,7 @@ private readonly ISHAuditDbcontext _db;
         }
 
         await _db.SaveChangesAsync();
-        return (inserted, updated);
+        return (inserted, updated, skipped);
     }
 
     public async Task<byte[]> GenerateKpiReportPdfAsync(int organizationId, int year, string quarter)

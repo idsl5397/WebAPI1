@@ -149,10 +149,18 @@ public class SuggestController: ControllerBase
     public async Task<IActionResult> PreviewFile(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("請上傳檔案");
+            return BadRequest(new { message = "請上傳檔案" });
 
-        var previewData = await _suggestService.PreviewAsync(file);
-        return Ok(previewData);
+        try
+        {
+            var previewData = await _suggestService.PreviewAsync(file);
+            return Ok(previewData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Suggest 預覽解析失敗");
+            return BadRequest(new { message = $"檔案解析失敗：{ex.Message}" });
+        }
     }
     
     [HttpPost("fullsubmit-for-report")]
