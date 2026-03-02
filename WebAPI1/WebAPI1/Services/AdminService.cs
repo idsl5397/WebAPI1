@@ -12,6 +12,7 @@ using WebAPI1.Services;
 public record OrgTreeNodeDto(
     int Id, string Name, string TypeCode, bool IsActive,
     string? Code, string? Address, string? ContactPerson, string? ContactPhone,
+    string? TaxId,
     List<OrgTreeNodeDto> Children
 );
 
@@ -902,6 +903,7 @@ public class AdminService: IAdminService
                     x.Address,
                     x.ContactPerson,
                     x.ContactPhone,
+                    x.TaxId,
                     BuildTree(x.Id)
                 ))
                 .ToList();
@@ -998,9 +1000,30 @@ public class AdminService: IAdminService
         if (hasChildren)
             throw new InvalidOperationException("刪除前請先移除子組織。");
 
-        var org = await _context.Organizations.FirstOrDefaultAsync(x => x.Id == id, ct)
-                  ?? throw new KeyNotFoundException($"找不到組織 ID={id}");
+        var userCount = await _context.Users.CountAsync(u => u.OrganizationId == id, ct);
+        if (userCount > 0)
+            throw new InvalidOperationException($"此組織下尚有 {userCount} 位使用者，請先移除或移轉使用者後再刪除。");
 
+        var kpiDataCount = await _context.KpiDatas.CountAsync(d => d.OrganizationId == id, ct);
+        if (kpiDataCount > 0)
+            throw new InvalidOperationException($"此組織下尚有 {kpiDataCount} 筆 KPI 資料，無法刪除。");
+
+        var kpiItemCount = await _context.KpiItems.CountAsync(i => i.OrganizationId == id, ct);
+        if (kpiItemCount > 0)
+            throw new InvalidOperationException($"此組織下尚有 {kpiItemCount} 筆自訂 KPI 項目，無法刪除。");
+
+        var suggestCount = await _context.SuggestDates.CountAsync(s => s.OrganizationId == id, ct)
+                         + await _context.SuggestFiles.CountAsync(s => s.OrganizationId == id, ct);
+        if (suggestCount > 0)
+            throw new InvalidOperationException($"此組織下尚有 {suggestCount} 筆委員建議資料，無法刪除。");
+
+        var org = await _context.Organizations
+            .Include(o => o.Domains)
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new KeyNotFoundException($"找不到組織 ID={id}");
+
+        // 域名設定隨組織一起刪除
+        _context.OrganizationDomains.RemoveRange(org.Domains);
         _context.Organizations.Remove(org);
         await _context.SaveChangesAsync(ct);
     }
@@ -2039,10 +2062,6 @@ public class AdminService: IAdminService
     public async Task<int> CreateCycleAsync(KpiCycleUpsertDto dto, CancellationToken ct)
     {
         Ensure(dto.EndYear >= dto.StartYear, "EndYear 必須 ≥ StartYear");
-        var dup = await _context.KpiCycles.AnyAsync(
-            x => x.StartYear == dto.StartYear && x.EndYear == dto.EndYear, ct);
-        Ensure(!dup, "已存在相同起訖年的 KpiCycle");
-
         var e = new KpiCycle
         {
             CycleName = dto.Name.Trim(),
@@ -2060,10 +2079,6 @@ public class AdminService: IAdminService
         Ensure(dto.EndYear >= dto.StartYear, "EndYear 必須 ≥ StartYear");
         var e = await _context.KpiCycles.FindAsync([id], ct);
         Ensure(e != null, "KpiCycle 不存在");
-
-        var dup = await _context.KpiCycles.AnyAsync(
-            x => x.Id != id && x.StartYear == dto.StartYear && x.EndYear == dto.EndYear, ct);
-        Ensure(!dup, "已存在相同起訖年的 KpiCycle");
 
         e.CycleName = dto.Name.Trim();
         e.StartYear = dto.StartYear;
